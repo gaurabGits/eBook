@@ -1,8 +1,9 @@
 const express = require('express');
-const { addBook, getAllBooks, getBookById } = require('../controllers/bookController');
+const { addBook, getAllBooks, getBookById, readBook } = require('../controllers/bookController');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require("../middleware/uploadMiddleware");
 const { adminOnly } = require("../middleware/adminMiddleware");
+
 
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.post("/", protect, adminOnly,
 
 router.get("/", protect, getAllBooks);
 router.get("/:id", getBookById);
+router.get("/:id/read", protect, readBook)
 
 module.exports = router;

@@ -7,11 +7,14 @@ const router = express.Router(); //  mini version of the Express app, used to gr
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
-router.get("/profile", protect, (req, res) =>{
-    res.json({
-        message: "Access granted",
-        user: req.user
-    })
-})
+router.get("/profile", protect, (req, res) => {
+  res.json({
+    message: "Access granted",
+    user: {
+      id: req.user.id,
+      role: req.user.role
+    }
+  });
+});
 
 module.exports = router;

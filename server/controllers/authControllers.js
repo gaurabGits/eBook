@@ -52,7 +52,7 @@ const loginUser = async (req, res) =>{
         // create JWT payload
         const payload = {
             userId: user._id,
-            role: user.role,
+            userRole: user.role, // e.g. "admin" or "user"
         };
 
         // sign token

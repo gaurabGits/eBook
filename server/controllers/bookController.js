@@ -1,4 +1,7 @@
 const Book = require("../models/Book");
+const { fileURLToPath } = require("url");
+const path = require("path");
+const fs = require("fs");
 
 // Add a new book
 const addBook = async (req, res) => {
@@ -57,4 +60,32 @@ const getBookById = async (req, res) => {
   }
 };
 
-module.exports = { addBook, getAllBooks, getBookById };
+//Read book
+const readBook = async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    // Paid book check
+    if (book.isPaid && req.user.role.toLowerCase() !== "admin") {
+      return res.status(403).json({ message: "This is a paid book. Purchase required." });
+    }
+
+    // Define filePath properly
+    const filePath = path.join(__dirname, "..", book.pdfUrl.replace(/^\//, ""));
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    res.sendFile(filePath);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+module.exports = { addBook, getAllBooks, getBookById, readBook };

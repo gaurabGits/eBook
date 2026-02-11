@@ -6,9 +6,15 @@ const protect = (req, res, next) => {
     if(req.headers.authorization && req.headers.authorization.startsWith("Bearer")){
         try {
             token = req.headers.authorization.split(" ")[1];
-            const decode = jwt.verify(token, process.env.JWT_SECRET);
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            req.user = decode; // attach user info, later routes can use it.
+            // Store both ID and role together
+            req.user = {
+                id: decoded.userId,
+                role: decoded.userRole
+            };
+
+            // req.user = decoded; 
             next(); // allow request 
 
         } catch (error) {
