@@ -11,8 +11,9 @@ import {
 import AdminNavbar from "../Components/adminNavbar";
 import { fetchAllBooks } from "../adminAPI";
 import { useNotification } from "../../context/Notification";
+import { API_BASE_URL } from "../../services/apiBase";
 
-const PUBLIC_API_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://localhost:3000/api" : "/api");
+const PUBLIC_API_BASE = API_BASE_URL;
 
 function Stars({ value = 0 }) {
   const rating = Math.max(0, Math.min(5, Number(value) || 0));
