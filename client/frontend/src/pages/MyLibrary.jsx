@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { HiOutlineBookOpen, HiOutlineClock, HiOutlineCheckCircle, HiOutlineBookmarkSquare } from "react-icons/hi2";
 import { getAvatarGradient } from "../utils/avatarColor";
 import API from "../services/api";
+import CoverImage from "../components/CoverImage";
 
 const getColor = (n = "") => getAvatarGradient(n) ?? getAvatarGradient("");
 
@@ -26,11 +27,13 @@ function BookCard({ book, tab, onMove, onRemove, busy }) {
     <div className="flex flex-col gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition-all group sm:flex-row sm:items-center sm:gap-4">
       <Link to={`/books/${book._id}`} className="flex items-center gap-4 min-w-0 w-full sm:flex-1">
         <div className={`w-12 h-16 sm:w-14 sm:h-20 rounded-lg flex-shrink-0 bg-gradient-to-br ${getColor(book.title)} flex items-center justify-center shadow-sm overflow-hidden`}>
-          {book.coverImage ? (
-            <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover" />
-          ) : (
-            <HiOutlineBookOpen className="text-white text-2xl" />
-          )}
+          <CoverImage
+            src={book.coverImage}
+            alt={book.title}
+            className="h-full w-full object-cover"
+            fallbackClassName="flex h-full w-full items-center justify-center"
+            iconClassName="text-2xl text-white"
+          />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{book.title}</p>

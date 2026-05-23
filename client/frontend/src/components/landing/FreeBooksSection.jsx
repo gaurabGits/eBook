@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { HiArrowRight, HiChevronLeft, HiChevronRight, HiOutlineBookOpen } from "react-icons/hi2";
 import API from "../../services/api";
+import CoverImage from "../CoverImage";
 
 const STYLES = `
   @keyframes slideInRight {
@@ -118,18 +119,13 @@ function FreeBooksSection() {
                   <div className="relative aspect-[177/266] w-full overflow-hidden rounded-xl shadow-md transition-all duration-300 hover:scale-105 hover:shadow-xl">
 
                     {/* Cover image — full, no tint */}
-                    {book.coverImage ? (
-                      <img
-                        src={book.coverImage}
-                        alt={book.title}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      /* Fallback only when no cover */
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-violet-200 dark:from-indigo-950/80 dark:to-violet-950/80 flex items-center justify-center">
-                        <HiOutlineBookOpen className="text-indigo-400 dark:text-indigo-600 text-4xl" />
-                      </div>
-                    )}
+                    <CoverImage
+                      src={book.coverImage}
+                      alt={book.title}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      fallbackClassName="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-100 to-violet-200 dark:from-indigo-950/80 dark:to-violet-950/80"
+                      iconClassName="text-4xl text-indigo-400 dark:text-indigo-600"
+                    />
 
                     {/* Subtle bottom gradient so text is readable */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />

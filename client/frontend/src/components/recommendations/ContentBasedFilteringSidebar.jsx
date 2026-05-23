@@ -5,6 +5,7 @@ import {
   HiOutlineCheckCircle,
   HiStar,
 } from "react-icons/hi2";
+import CoverImage from "../CoverImage";
 
 function getPriceLabel(book) {
   if (!book?.isPaid) return "Free";
@@ -57,17 +58,12 @@ function SimilarBookCard({ book, onClick, compact = false }) {
       <div className="flex h-full gap-4">
         <div className={`relative shrink-0 ${compact ? "w-24" : "w-28 sm:w-32"}`}>
           <div className={`aspect-[177/266] overflow-hidden bg-stone-100 dark:bg-stone-800 ${compact ? "rounded-lg" : "rounded-xl"}`}>
-            {book?.coverImage ? (
-              <img
-                src={book.coverImage}
-                alt={book?.title || "Book cover"}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-stone-100 via-[#f3efe4] to-stone-200 dark:from-stone-800 dark:via-stone-800 dark:to-stone-700">
-                <HiOutlineBookOpen className="text-4xl text-stone-400 dark:text-stone-500" />
-              </div>
-            )}
+            <CoverImage
+              src={book?.coverImage}
+              alt={book?.title || "Book cover"}
+              fallbackClassName="flex h-full w-full items-center justify-center bg-gradient-to-br from-stone-100 via-[#f3efe4] to-stone-200 dark:from-stone-800 dark:via-stone-800 dark:to-stone-700"
+              iconClassName="text-4xl text-stone-400 dark:text-stone-500"
+            />
           </div>
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[6px] rounded-l-[3px] bg-gradient-to-r from-black/10 to-transparent" />
         </div>

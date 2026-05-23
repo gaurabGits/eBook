@@ -3,6 +3,7 @@ import { HiOutlineMagnifyingGlass, HiOutlineBookOpen, HiXMark } from "react-icon
 import { useNavigate, useSearchParams } from "react-router-dom";
 import API from "../services/api";
 import BookCard, { BookCardSkeleton } from "../components/BookCard";
+import CoverImage from "../components/CoverImage";
 
 const SKELETON_COUNT = 8;
 const PAGE_SIZE = 12;
@@ -16,17 +17,12 @@ const MiniCard = ({ book, onClick }) => (
     {/* Cover */}
     <div className="relative overflow-hidden rounded-[3px] shadow-[2px_4px_14px_rgba(60,40,10,0.13)] transition-all duration-300 group-hover:shadow-[2px_8px_24px_rgba(60,40,10,0.22)]">
       <div className="aspect-[186/266] w-[186px] bg-indigo-50">
-        {book.coverImage ? (
-          <img
-            src={book.coverImage}
-            alt={book.title}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-indigo-50 via-violet-50 to-indigo-100">
-            <HiOutlineBookOpen className="text-4xl text-indigo-300" />
-          </div>
-        )}
+        <CoverImage
+          src={book.coverImage}
+          alt={book.title}
+          fallbackClassName="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-indigo-50 via-violet-50 to-indigo-100"
+          iconClassName="text-4xl text-indigo-300"
+        />
       </div>
 
       {/* "New" ribbon */}

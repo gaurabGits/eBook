@@ -22,6 +22,7 @@ import {
 } from "../services/bookService";
 import { useNotification } from "../context/Notification";
 import API from "../services/api";
+import CoverImage from "../components/CoverImage";
 import ContentBasedFilteringSidebar from "../components/recommendations/ContentBasedFilteringSidebar";
 import CollaborativeFilteringBottom from "../components/recommendations/CollaborativeFilteringBottom";
 import { getJwtPayload, isJwtExpired } from "../utils/jwt";
@@ -840,13 +841,12 @@ export default function BookDetailPage() {
                     style={{ boxShadow: "4px 6px 20px rgba(60,40,10,0.18), 1px 2px 4px rgba(60,40,10,0.12)" }}
                   >
                     <div className="aspect-[177/266] w-full bg-indigo-50">
-                      {book.coverImage ? (
-                        <img src={book.coverImage} alt={book.title} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-indigo-50 via-violet-50 to-indigo-100">
-                          <HiOutlineBookOpen className="text-5xl text-indigo-300" />
-                        </div>
-                      )}
+                      <CoverImage
+                        src={book.coverImage}
+                        alt={book.title}
+                        fallbackClassName="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-indigo-50 via-violet-50 to-indigo-100"
+                        iconClassName="text-5xl text-indigo-300"
+                      />
                     </div>
                     {/* Spine gloss */}
                     <div className="pointer-events-none absolute inset-y-0 left-0 w-[6px] bg-gradient-to-r from-black/10 to-transparent" />

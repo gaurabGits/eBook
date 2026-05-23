@@ -5,6 +5,7 @@ import {
   HiBookmark,
   HiOutlineCheckCircle,
 } from "react-icons/hi2";
+import CoverImage from "./CoverImage";
 
 export function BookCardSkeleton() {
   return (
@@ -59,17 +60,12 @@ const BookCard = ({ book, onClick, onToggleBookmark, isBookmarked = false }) => 
           )}
 
           <div className="aspect-[177/266] w-full overflow-hidden bg-[#eef1e6]">
-            {book.coverImage ? (
-              <img
-                src={book.coverImage}
-                alt={book.title}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#eef5df] via-[#dce8c9] to-[#bac98e] dark:from-slate-800 dark:via-slate-700 dark:to-slate-600">
-                <HiOutlineBookOpen className="text-5xl text-[#6a7f46] dark:text-slate-300" />
-              </div>
-            )}
+            <CoverImage
+              src={book.coverImage}
+              alt={book.title}
+              fallbackClassName="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#eef5df] via-[#dce8c9] to-[#bac98e] dark:from-slate-800 dark:via-slate-700 dark:to-slate-600"
+              iconClassName="text-5xl text-[#6a7f46] dark:text-slate-300"
+            />
           </div>
 
           {typeof onToggleBookmark === "function" && (
