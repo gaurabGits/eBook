@@ -8,6 +8,8 @@ const fs = require("fs");
 const { computeContentBasedSimilarity } = require("../utils/recommendations/contentBased");
 const { getCollaborativeScores } = require("../utils/recommendations/collaborativeFiltering");
 
+const BOOK_LIST_SELECT = "title author description category coverImage isPaid price averageRating totalRatings reads createdAt updatedAt";
+
 const markActivityOnce = async ({ userId, bookId, field }) => {
   if (!userId) return false;
   const now = new Date();
@@ -294,8 +296,14 @@ const getAllBooks = async (req, res) => {
       query.createdAt = { $gte: thirtyDaysAgo };
     }
 
-    const total = await Book.countDocuments(query);
-    let booksQuery = Book.find(query).sort({ createdAt: -1 });
+    const isUnfilteredQuery = Object.keys(query).length === 0;
+    const total = isUnfilteredQuery
+      ? await Book.estimatedDocumentCount()
+      : await Book.countDocuments(query);
+    let booksQuery = Book.find(query)
+      .select(BOOK_LIST_SELECT)
+      .sort({ _id: -1 })
+      .lean();
 
     if (hasPagination) {
       booksQuery = booksQuery.skip((page - 1) * limit).limit(limit);
@@ -321,7 +329,7 @@ const getBookmarkedBooks = async (req, res) => {
   try {
     const bookmarks = await Bookmark.find({ user: req.user.id })
       .sort({ createdAt: -1 })
-      .populate("book");
+      .populate("book", BOOK_LIST_SELECT);
 
     const books = bookmarks
       .filter((item) => item.book)
@@ -373,8 +381,11 @@ const getPopularBooks = async (req, res) => {
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 20) : 3;
 
     const books = await Book.find({})
+      .select(BOOK_LIST_SELECT)
       .sort({ reads: -1, createdAt: -1 })
-      .limit(limit);
+      .allowDiskUse(true)
+      .limit(limit)
+      .lean();
 
     const booksWithBookmark = await attachUserBookFlags(books, req.user?.id);
 
@@ -418,6 +429,7 @@ const getBookRecommendations = async (req, res) => {
       Book.find({ _id: { $ne: bookId } })
         .select(baseProjection)
         .sort({ reads: -1, createdAt: -1 })
+        .allowDiskUse(true)
         .limit(120)
         .lean(),
     ]);

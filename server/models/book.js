@@ -71,4 +71,9 @@ const bookSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+bookSchema.index({ createdAt: -1 });
+bookSchema.index({ reads: -1, createdAt: -1 });
+bookSchema.index({ category: 1, createdAt: -1 });
+bookSchema.index({ isPaid: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Book', bookSchema);

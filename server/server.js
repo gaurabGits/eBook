@@ -16,7 +16,9 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 const app = express();
 
 // Middleware
-app.use(cors());  
+app.use(cors({
+   origin: "*"
+})); 
 app.use(express.json({ limit: "50mb" })); // Allow base64 PDF/image payloads from admin upload
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 

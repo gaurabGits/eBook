@@ -7,7 +7,9 @@ const connectDB = async () => {
     throw new Error("Missing MongoDB connection string: set MONGO_URL in server/.env");
   }
 
-  await mongoose.connect(mongoUrl);
+  await mongoose.connect(mongoUrl, {
+    autoIndex: process.env.MONGO_AUTO_INDEX === "true",
+  });
   console.log("MongoDB connected");
 };
 
