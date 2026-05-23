@@ -34,10 +34,10 @@ function FreeBooksSection() {
   useEffect(() => {
     (async () => {
       try {
-        const res  = await API.get("/books?limit=30");
-        const all  = res.data.books ?? res.data ?? [];
-        const free = all.filter((b) => !b.isPaid).slice(0, 12);
-        setBooks(free);
+        const res = await API.get("/books", {
+          params: { page: 1, limit: 12, type: "free" },
+        });
+        setBooks(res.data.books ?? res.data ?? []);
       } catch (err) {
         console.error(err);
       } finally {

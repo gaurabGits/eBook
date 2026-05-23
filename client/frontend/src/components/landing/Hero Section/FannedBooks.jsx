@@ -33,7 +33,7 @@ function FannedBooks() {
         try {
           res = await API.get("/books/popular", { params: { limit: 3 } });
         } catch {
-          res = await API.get("/books");
+          res = await API.get("/books", { params: { page: 1, limit: 3 } });
         }
 
         const booksArray = Array.isArray(res?.data?.books)

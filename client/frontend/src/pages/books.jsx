@@ -1,20 +1,11 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { HiOutlineMagnifyingGlass, HiOutlineBookOpen, HiXMark } from "react-icons/hi2";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import API from "../services/api";
 import BookCard, { BookCardSkeleton } from "../components/BookCard";
 
 const SKELETON_COUNT = 8;
-
-/* tiny helpers */
-
-const Badge = ({ children, className = "" }) => (
-  <span
-    className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${className}`}
-  >
-    {children}
-  </span>
-);
+const PAGE_SIZE = 12;
 
 /* MiniCard (Recently Added) */
 const MiniCard = ({ book, onClick }) => (
@@ -84,62 +75,97 @@ export default function BooksPage() {
   const [searchParams] = useSearchParams();
 
   const [books, setBooks]       = useState([]);
-  const [allBooks, setAllBooks] = useState([]);
+  const [recentBooks, setRecentBooks] = useState([]);
   const [loading, setLoading]   = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [search, setSearch]     = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filter, setFilter]     = useState(() => {
     const v = String(searchParams.get("filter") || "all").toLowerCase();
     return ["free", "paid", "all"].includes(v) ? v : "all";
   });
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
     (async () => {
-      setLoading(true);
       try {
-        const res      = await API.get("/books");
-        const data     = res.data;
-        const bookList = data.books ?? data;
-        setBooks(bookList);
-        setAllBooks(bookList);
+        const { data } = await API.get("/books", {
+          params: { page: 1, limit: 6 },
+        });
+        setRecentBooks(data.books ?? data ?? []);
       } catch (err) {
         console.error(err);
-      } finally {
-        setLoading(false);
       }
     })();
   }, []);
 
-  const filteredBooks = useMemo(() => {
-    let list = [...books];
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (b) => b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q),
-      );
-    }
-    if (filter === "free") list = list.filter((b) => !b.isPaid);
-    if (filter === "paid") list = list.filter((b) =>  b.isPaid);
+  useEffect(() => {
+    let ignore = false;
 
-    // Sort by popularity (most reads first)
-    list.sort((a, b) => {
-      const readsA = Number(a?.reads) || 0;
-      const readsB = Number(b?.reads) || 0;
-      if (readsB !== readsA) return readsB - readsA;
-      return (new Date(b?.createdAt).getTime() || 0) - (new Date(a?.createdAt).getTime() || 0);
-    });
-    return list;
-  }, [books, search, filter]);
+    (async () => {
+      setLoading(true);
+      setPage(1);
+      try {
+        const params = { page: 1, limit: PAGE_SIZE };
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (filter !== "all") params.type = filter;
 
-  const recentBooks = useMemo(
-    () =>
-      [...allBooks]
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 6),
-    [allBooks],
-  );
+        const { data } = await API.get("/books", { params });
+        if (ignore) return;
+
+        const bookList = data.books ?? data ?? [];
+        setBooks(bookList);
+        setTotal(Number(data.total) || bookList.length);
+      } catch (err) {
+        if (!ignore) {
+          console.error(err);
+          setBooks([]);
+          setTotal(0);
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [debouncedSearch, filter]);
 
   const isSearching             = search.trim().length > 0;
-  const shouldShowRecentlyAdded = !loading && recentBooks.length > 0 && !isSearching;
+  const shouldShowRecentlyAdded = !loading && recentBooks.length > 0 && !isSearching && filter === "all";
+  const hasMore = books.length < total;
+
+  const loadMoreBooks = async () => {
+    if (loadingMore || !hasMore) return;
+
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    try {
+      const params = { page: nextPage, limit: PAGE_SIZE };
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (filter !== "all") params.type = filter;
+
+      const { data } = await API.get("/books", { params });
+      const bookList = data.books ?? data ?? [];
+      setBooks((prev) => [...prev, ...bookList]);
+      setTotal(Number(data.total) || total);
+      setPage(nextPage);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   /*  Render  */
   return (
@@ -161,7 +187,7 @@ export default function BooksPage() {
               <p className="font-sans text-[14px] mt-1.5 text-stone-400 dark:text-stone-500">
                 {loading
                   ? "Loading catalogue…"
-                  : `${filteredBooks.length.toLocaleString()} title${filteredBooks.length !== 1 ? "s" : ""} in the catalogue`}
+                  : `${total.toLocaleString()} title${total !== 1 ? "s" : ""} in the catalogue`}
               </p>
             </div>
 
@@ -259,7 +285,7 @@ export default function BooksPage() {
           <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(175px,1fr))] md:gap-x-5 md:gap-y-8">
             {loading
               ? Array(SKELETON_COUNT).fill(0).map((_, i) => <BookCardSkeleton key={i} />)
-              : filteredBooks.map((book) => (
+              : books.map((book) => (
                   <BookCard
                     key={book._id}
                     book={book}
@@ -268,8 +294,21 @@ export default function BooksPage() {
                 ))}
           </div>
 
+          {!loading && hasMore && (
+            <div className="mt-10 flex justify-center">
+              <button
+                type="button"
+                onClick={loadMoreBooks}
+                disabled={loadingMore}
+                className="rounded-sm border border-indigo-900 bg-indigo-900 px-5 py-2.5 text-[12px] font-semibold uppercase tracking-wider text-white shadow-sm transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60 dark:border-indigo-500 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+              >
+                {loadingMore ? "Loading..." : "Load more"}
+              </button>
+            </div>
+          )}
+
           {/* Empty state */}
-          {!loading && filteredBooks.length === 0 && (
+          {!loading && books.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-sm border border-dashed border-stone-300 dark:border-stone-700">
                 <HiOutlineBookOpen className="text-3xl text-stone-300 dark:text-stone-600" />
