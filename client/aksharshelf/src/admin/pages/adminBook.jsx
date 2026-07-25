@@ -26,8 +26,6 @@ const initialForm = {
   description: '',
   pdfUrl:      '',
   coverImage:  '',
-  isPaid:      false,
-  price:       0,
 };
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -156,13 +154,8 @@ const AdminBook = () => {
   };
 
   const onChange = (e) => {
-    const { name, type, checked, value } = e.target;
+    const { name, value } = e.target;
     setImgError(false);
-
-    if (type === 'checkbox') {
-      setForm((prev) => ({ ...prev, [name]: checked, price: checked ? prev.price : 0 }));
-      return;
-    }
 
     // If user manually edits coverImage URL field, update preview too
     if (name === 'coverImage') {
@@ -171,9 +164,7 @@ const AdminBook = () => {
 
     setForm((prev) => ({
       ...prev,
-      [name]: name === 'price'
-        ? Number(value || 0)
-        : name === 'pageCount'
+      [name]: name === 'pageCount'
           ? value.replace(/[^\d]/g, '')
           : value,
     }));
@@ -280,7 +271,6 @@ const AdminBook = () => {
       description: form.description.trim(),
       pdfUrl:      form.pdfUrl.trim(),
       coverImage:  form.coverImage.trim(),
-      price:       form.isPaid ? Number(form.price) || 0 : 0,
     };
 
     try {
@@ -319,8 +309,6 @@ const AdminBook = () => {
       description: book.description || '',
       pdfUrl:      book.pdfUrl      || '',
       coverImage:  book.coverImage  || '',
-      isPaid:      Boolean(book.isPaid),
-      price:       Number(book.price) || 0,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -562,35 +550,6 @@ const AdminBook = () => {
                     className="border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1a1a2e] transition-colors sm:col-span-2 resize-none"
                   />
 
-                  {/* Paid toggle + price */}
-                  <div className="flex items-center gap-4 sm:col-span-2">
-                    <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="isPaid"
-                        checked={form.isPaid}
-                        onChange={onChange}
-                        className="w-4 h-4 accent-[#1a1a2e]"
-                      />
-                      Paid Book
-                    </label>
-                    {form.isPaid && (
-                      <div className="flex items-center gap-1 border border-slate-200 rounded-lg px-3 py-2 w-36">
-                        <span className="text-sm text-slate-400">Rs. </span>
-                        <input
-                          type="number"
-                          name="price"
-                          min="0"
-                          step="0.01"
-                          value={form.price}
-                          onChange={onChange}
-                          className="w-full text-sm outline-none"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    )}
-                  </div>
-
                   {/* Action Buttons */}
                   <div className="flex gap-3 sm:col-span-2">
                     <button
@@ -657,7 +616,6 @@ const AdminBook = () => {
                     <th className="px-5 py-3 text-left">Book</th>
                     <th className="px-5 py-3 text-left">Author</th>
                     <th className="px-5 py-3 text-left">Category</th>
-                    <th className="px-5 py-3 text-left">Price</th>
                     <th className="px-5 py-3 text-left">Actions</th>
                   </tr>
                 </thead>
@@ -665,14 +623,14 @@ const AdminBook = () => {
                   {loading ? (
                     [...Array(4)].map((_, i) => (
                       <tr key={i} className="border-t border-slate-50">
-                        <td className="px-5 py-4" colSpan={5}>
+                        <td className="px-5 py-4" colSpan={4}>
                           <div className="h-4 bg-slate-100 rounded animate-pulse w-3/4" />
                         </td>
                       </tr>
                     ))
                   ) : filteredBooks.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-5 py-10 text-center text-slate-400">
+                      <td colSpan={4} className="px-5 py-10 text-center text-slate-400">
                         <p className="text-3xl mb-2">📭</p>
                         {searchQuery.trim() ? 'No books match your search.' : 'No books found. Add your first book above.'}
                       </td>
@@ -718,15 +676,6 @@ const AdminBook = () => {
                           <span className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded-full">
                             {book.category}
                           </span>
-                        </td>
-                        <td className="px-5 py-3">
-                          {book.isPaid ? (
-                            <span className="text-green-600 font-medium">
-                              ₹{Number(book.price || 0).toFixed(2)}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">Free</span>
-                          )}
                         </td>
                         <td className="px-5 py-3">
                           <div className="flex gap-2">

@@ -26,8 +26,7 @@ You can change this in `src/services/api.jsx` when deploying.
 ## Main pages
 
 - `/books` browse books
-- `/books/:id` book details (paid books show "Purchase required")
-- `/read/:id` reader (PDF loads from protected API)
-- `/purchase/:id` dummy checkout page
-- `/profile` profile settings + Payments history
+- `/books/:id` book details
+- `/read/:id` reader
+- `/profile` profile settings
 - `/admin/*` admin panel (requires admin login)

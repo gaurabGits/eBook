@@ -1,29 +1,32 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   HiArrowLeft,
   HiBookmark,
   HiOutlineBookmark,
-  HiOutlineBookmarkSquare,
   HiOutlineBookOpen,
   HiOutlineChatBubbleLeftRight,
   HiOutlineCheckCircle,
   HiOutlineClock,
   HiEllipsisVertical,
-  HiOutlineLockClosed,
   HiOutlineStar,
   HiStar,
   HiXMark,
+  HiOutlineUsers,
+  HiOutlineCalendar,
+  HiOutlineHeart,
+  HiHeart,
+  HiShare,
+  HiOutlineShare,
 } from "react-icons/hi2";
+import { HiOutlineBookmarkAlt, HiOutlineGlobe } from "react-icons/hi";
 import {
   fetchBookCollaborativeRecommendations,
   fetchBookDetail,
-  fetchBookRecommendations,
 } from "../services/bookService";
 import { useNotification } from "../context/Notification";
 import API from "../services/api";
 import CoverImage from "../components/CoverImage";
-import ContentBasedFilteringSidebar from "../components/recommendations/ContentBasedFilteringSidebar";
 import CollaborativeFilteringBottom from "../components/recommendations/CollaborativeFilteringBottom";
 import { getJwtPayload, isJwtExpired } from "../utils/jwt";
 
@@ -34,28 +37,31 @@ const SHELF_OPTIONS = [
     key: "reading",
     label: "Currently Reading",
     icon: <HiOutlineClock />,
-    color: "text-sky-700",
-    bg: "bg-sky-50 hover:bg-sky-100 border-sky-200",
+    color: "text-indigo-600",
+    bg: "bg-indigo-50 hover:bg-indigo-100",
+    dotColor: "bg-indigo-500",
   },
   {
     key: "completed",
-    label: "Completed",
+    label: "Read",
     icon: <HiOutlineCheckCircle />,
-    color: "text-emerald-700",
-    bg: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50 hover:bg-emerald-100",
+    dotColor: "bg-emerald-500",
   },
   {
     key: "planned",
-    label: "Plan to Read",
-    icon: <HiOutlineBookmarkSquare />,
-    color: "text-amber-700",
-    bg: "bg-amber-50 hover:bg-amber-100 border-amber-200",
+    label: "Want to Read",
+    icon: <HiOutlineBookmarkAlt />,
+    color: "text-amber-600",
+    bg: "bg-amber-50 hover:bg-amber-100",
+    dotColor: "bg-amber-500",
   },
 ];
 
 const AVATAR_COLORS = [
-  "bg-amber-600", "bg-stone-600", "bg-teal-600",
-  "bg-rose-700",  "bg-indigo-600", "bg-lime-700",
+  "bg-indigo-500", "bg-purple-500", "bg-pink-500",
+  "bg-emerald-500", "bg-amber-500", "bg-rose-500",
 ];
 
 /* ─── Helpers ───────────────────────────────────────────────────── */
@@ -69,7 +75,7 @@ function getCurrentUser() {
     return null;
   }
   const payload = getJwtPayload(token);
-  const userId  = payload?.userId || payload?.id || payload?._id;
+  const userId = payload?.userId || payload?.id || payload?._id;
   if (!userId) return null;
   return { _id: String(userId), name: "You" };
 }
@@ -100,7 +106,7 @@ function StarRating({ value = 0, onChange, readonly = false, size = "text-base" 
   const [hover, setHover] = useState(0);
   const display = hover || value;
   return (
-    <div className="flex items-center gap-px">
+    <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
         <button
           key={s}
@@ -109,11 +115,15 @@ function StarRating({ value = 0, onChange, readonly = false, size = "text-base" 
           onClick={() => onChange?.(s)}
           onMouseEnter={() => !readonly && setHover(s)}
           onMouseLeave={() => !readonly && setHover(0)}
-          className={`${size} transition-colors ${readonly ? "cursor-default" : "cursor-pointer"}`}
+          className={`${size} transition-all duration-150 ${
+            readonly ? "cursor-default" : "cursor-pointer hover:scale-110"
+          }`}
         >
-          {s <= display
-            ? <HiStar className="text-amber-500" />
-            : <HiOutlineStar className="text-stone-300 dark:text-stone-600" />}
+          {s <= display ? (
+            <HiStar className="text-amber-400 fill-amber-400" />
+          ) : (
+            <HiOutlineStar className="text-stone-300 dark:text-stone-600" />
+          )}
         </button>
       ))}
     </div>
@@ -121,10 +131,15 @@ function StarRating({ value = 0, onChange, readonly = false, size = "text-base" 
 }
 
 function Avatar({ name, size = "w-8 h-8 text-xs" }) {
-  const color = AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+  const safeName = typeof name === "string" && name.trim() ? name.trim() : "Reader";
+  const initial = safeName.charAt(0).toUpperCase();
+  const color = AVATAR_COLORS[(safeName.charCodeAt(0) || 65) % AVATAR_COLORS.length];
+
   return (
-    <div className={`${size} ${color} rounded-full flex items-center justify-center text-white font-bold shrink-0`}>
-      {name[0].toUpperCase()}
+    <div
+      className={`${size} ${color} rounded-full flex items-center justify-center text-white font-semibold shadow-sm shrink-0`}
+    >
+      {initial}
     </div>
   );
 }
@@ -133,33 +148,27 @@ function Avatar({ name, size = "w-8 h-8 text-xs" }) {
 
 function Skeleton() {
   return (
-    <div className="min-h-screen animate-pulse bg-[#faf8f3] dark:bg-[#18160f]">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="h-3 w-24 rounded bg-stone-200 dark:bg-stone-800" />
-        <div className="mt-8 grid gap-8 md:grid-cols-[225px_minmax(0,1fr)] md:items-start">
-          <div className="mx-auto w-full max-w-[225px] md:mx-0">
-            <div className="aspect-[177/266] w-full rounded-[3px] bg-stone-200 dark:bg-stone-800" />
-            <div className="mt-3 h-9 w-full rounded-[3px] bg-stone-200 dark:bg-stone-800" />
+    <div className="min-h-screen animate-pulse bg-stone-50 dark:bg-stone-950">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="h-4 w-32 rounded bg-stone-200 dark:bg-stone-800" />
+        <div className="mt-8 grid gap-10 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="mx-auto w-full max-w-[280px]">
+            <div className="aspect-[2/3] w-full rounded-2xl bg-stone-200 dark:bg-stone-800 shadow-xl" />
+            <div className="mt-4 h-12 w-full rounded-xl bg-stone-200 dark:bg-stone-800" />
+            <div className="mt-3 h-10 w-full rounded-xl bg-stone-200 dark:bg-stone-800" />
           </div>
-
-          <div className="min-w-0 space-y-2">
-            <div className="h-3 w-24 rounded bg-stone-200 dark:bg-stone-800" />
-            <div className="h-10 w-5/6 rounded bg-stone-200 dark:bg-stone-800" />
-            <div className="h-4 w-2/5 rounded bg-stone-200 dark:bg-stone-800" />
-
-            <div className="flex items-center gap-3">
-              <div className="h-4 w-24 rounded bg-stone-200 dark:bg-stone-800" />
-              <div className="h-4 w-10 rounded bg-stone-200 dark:bg-stone-800" />
-              <div className="h-4 w-20 rounded bg-stone-200 dark:bg-stone-800" />
+          <div className="min-w-0 space-y-4">
+            <div className="h-6 w-32 rounded bg-stone-200 dark:bg-stone-800" />
+            <div className="h-14 w-4/5 rounded bg-stone-200 dark:bg-stone-800" />
+            <div className="h-8 w-2/5 rounded bg-stone-200 dark:bg-stone-800" />
+            <div className="flex items-center gap-4">
+              <div className="h-6 w-40 rounded bg-stone-200 dark:bg-stone-800" />
+              <div className="h-6 w-24 rounded bg-stone-200 dark:bg-stone-800" />
             </div>
-
-            <div className="h-6 w-24 rounded-sm bg-stone-200 dark:bg-stone-800" />
-
-            <div className="mt-3 h-24 rounded bg-stone-100 dark:bg-stone-800" />
-
-            <div className="mt-3 flex gap-3">
-              <div className="h-11 w-36 rounded-sm bg-stone-200 dark:bg-stone-800" />
-              <div className="h-11 w-11 rounded-sm bg-stone-200 dark:bg-stone-800" />
+            <div className="mt-6 h-28 rounded-xl bg-stone-100 dark:bg-stone-800" />
+            <div className="flex gap-3">
+              <div className="h-14 w-48 rounded-xl bg-stone-200 dark:bg-stone-800" />
+              <div className="h-14 w-14 rounded-xl bg-stone-200 dark:bg-stone-800" />
             </div>
           </div>
         </div>
@@ -174,14 +183,11 @@ function Overlay({ onClose, children }) {
   useEffect(() => {
     const esc = (e) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", esc);
-    
-    // Store the current scroll position
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     document.body.style.overflow = "hidden";
     document.body.style.position = "fixed";
     document.body.style.top = `-${scrollTop}px`;
     document.body.style.width = "100%";
-    
     return () => {
       document.removeEventListener("keydown", esc);
       document.body.style.overflow = "";
@@ -200,12 +206,12 @@ function Overlay({ onClose, children }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4 pb-4 sm:pb-0 pointer-events-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4 pb-4 sm:pb-0 pointer-events-auto"
       onClick={handleBackdropClick}
       role="presentation"
     >
       <div
-        className="bg-[#faf8f3] dark:bg-stone-900 border border-stone-200 dark:border-stone-700 shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col rounded-[3px] pointer-events-auto"
+        className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col pointer-events-auto overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -216,13 +222,15 @@ function Overlay({ onClose, children }) {
 
 function ModalHeader({ title, onClose }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-stone-700 shrink-0">
-      <p className="font-serif text-[15px] font-semibold text-stone-900 dark:text-stone-50">{title}</p>
+    <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 dark:border-stone-700 shrink-0">
+      <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-50">
+        {title}
+      </h3>
       <button
         onClick={onClose}
-        className="w-7 h-7 flex items-center justify-center text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
+        className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
       >
-        <HiXMark className="text-lg" />
+        <HiXMark className="text-xl" />
       </button>
     </div>
   );
@@ -232,16 +240,25 @@ function DescriptionModal({ text, onClose }) {
   return (
     <Overlay onClose={onClose}>
       <ModalHeader title="About this book" onClose={onClose} />
-      <div className="px-6 py-5 overflow-y-auto">
-        <p className="font-serif text-[15px] leading-7 text-stone-600 dark:text-stone-400">{text}</p>
+      <div className="px-6 py-6 overflow-y-auto">
+        <p className="text-base leading-relaxed text-stone-700 dark:text-stone-300">
+          {text}
+        </p>
       </div>
     </Overlay>
   );
 }
 
 function ReviewsModal({
-  reviews, avgRating, totalReviews, onClose,
-  myReviewId, openReviewMenuId, onMenuToggle, onEditMyReview, onDeleteMyReview,
+  reviews,
+  avgRating,
+  totalReviews,
+  onClose,
+  myReviewId,
+  openReviewMenuId,
+  onMenuToggle,
+  onEditMyReview,
+  onDeleteMyReview,
 }) {
   const counts = [5, 4, 3, 2, 1].map((star) => ({
     star,
@@ -251,17 +268,16 @@ function ReviewsModal({
   return (
     <Overlay onClose={onClose}>
       <ModalHeader title={`Reviews · ${reviews.length}`} onClose={onClose} />
-      
-      {/* Rating Breakdown - Fixed at top */}
+
       {totalReviews > 0 && (
         <div className="px-6 py-5 border-b border-stone-200 dark:border-stone-700 shrink-0">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             <div className="text-center shrink-0">
-              <p className="font-serif text-3xl font-bold text-stone-900 dark:text-stone-50 leading-none">
+              <p className="text-4xl font-bold text-stone-900 dark:text-stone-50 leading-none">
                 {avgRating.toFixed(1)}
               </p>
               <StarRating value={Math.round(avgRating)} readonly size="text-sm" />
-              <p className="text-[10px] text-stone-400 mt-1">
+              <p className="text-xs text-stone-400 mt-1.5">
                 {totalReviews} rating{totalReviews !== 1 ? "s" : ""}
               </p>
             </div>
@@ -269,16 +285,20 @@ function ReviewsModal({
               {counts.map(({ star, count }) => {
                 const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
                 return (
-                  <div key={star} className="flex items-center gap-2">
-                    <span className="text-[10px] text-stone-400 w-2.5 text-right shrink-0">{star}</span>
-                    <HiStar className="text-amber-400 text-[9px] shrink-0" />
+                  <div key={star} className="flex items-center gap-2.5">
+                    <span className="text-xs text-stone-400 w-2.5 text-right shrink-0">
+                      {star}
+                    </span>
+                    <HiStar className="text-amber-400 text-[10px] shrink-0" />
                     <div className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                        className="h-full bg-amber-400 rounded-full transition-all duration-700"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-stone-400 w-8 shrink-0 text-right">{count}</span>
+                    <span className="text-xs text-stone-400 w-8 shrink-0 text-right">
+                      {count}
+                    </span>
                   </div>
                 );
               })}
@@ -287,10 +307,12 @@ function ReviewsModal({
         </div>
       )}
 
-      {/* Reviews - Scrollable */}
-      <div className="relative overflow-x-visible overflow-y-auto divide-y divide-stone-100 dark:divide-stone-800">
+      <div className="overflow-y-auto divide-y divide-stone-100 dark:divide-stone-800">
         {reviews.length === 0 ? (
-          <p className="text-sm text-stone-400 text-center py-12">No reviews yet.</p>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <HiOutlineChatBubbleLeftRight className="text-4xl text-stone-300 dark:text-stone-700 mb-3" />
+            <p className="text-stone-400 dark:text-stone-500">No reviews yet</p>
+          </div>
         ) : (
           reviews.map((r) => (
             <ReviewRow
@@ -313,84 +335,38 @@ function ReviewsModal({
 
 function ShelfDropdown({ current, onSelect, onClose }) {
   return (
-    <div className="absolute right-0 top-11 z-40 w-56 bg-[#faf8f3] dark:bg-stone-900 rounded-[3px] border border-stone-200 dark:border-stone-700 shadow-xl overflow-hidden">
-      <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400 px-4 pt-3 pb-1.5">
-        Add to shelf
-      </p>
+    <div className="absolute right-0 top-12 z-40 w-64 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl overflow-hidden">
+      <div className="px-4 pt-3 pb-1.5 bg-stone-50 dark:bg-stone-800/50">
+        <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
+          Add to shelf
+        </p>
+      </div>
       {SHELF_OPTIONS.map((opt) => (
         <button
           key={opt.key}
           onClick={() => { onSelect(opt.key); onClose(); }}
-          className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] transition-colors ${
+          className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
             current === opt.key
-              ? `${opt.color} font-semibold bg-indigo-50/70 dark:bg-stone-800`
-              : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800"
+              ? `${opt.color} bg-stone-50 dark:bg-stone-800`
+              : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800"
           }`}
         >
-          <span className={`text-sm ${current === opt.key ? opt.color : "text-stone-400"}`}>{opt.icon}</span>
-          {opt.label}
-          {current === opt.key && <span className="ml-auto text-[10px] text-stone-400">✓</span>}
+          <span className={`text-base ${current === opt.key ? opt.color : "text-stone-400"}`}>
+            {opt.icon}
+          </span>
+          <span className="flex-1 text-left font-medium">{opt.label}</span>
+          {current === opt.key && (
+            <span className="text-xs text-stone-400">✓</span>
+          )}
         </button>
       ))}
       {current && (
         <button
           onClick={() => { onSelect(null); onClose(); }}
-          className="w-full flex items-center gap-2 px-4 py-2.5 text-[12px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-t border-stone-200 dark:border-stone-700 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-t border-stone-200 dark:border-stone-700 transition-colors"
         >
+          <span className="text-base">✕</span>
           Remove from shelf
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ─── Rating Bar ────────────────────────────────────────────────── */
-
-function RatingBar({ reviews, avgRating, totalReviews, onShowMore }) {
-  const counts = [5, 4, 3, 2, 1].map((star) => ({
-    star,
-    count: reviews.filter((r) => r.rating === star).length,
-  }));
-  
-  const displayCounts = counts.slice(0, 2);
-  
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-6">
-        <div className="text-center shrink-0">
-          <p className="font-serif text-4xl font-bold text-stone-900 dark:text-stone-50 leading-none">
-            {avgRating.toFixed(1)}
-          </p>
-          <StarRating value={Math.round(avgRating)} readonly size="text-sm" />
-          <p className="text-[10px] text-stone-400 mt-1">
-            {totalReviews} rating{totalReviews !== 1 ? "s" : ""}
-          </p>
-        </div>
-        <div className="flex-1 space-y-1.5">
-          {displayCounts.map(({ star, count }) => {
-            const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
-            return (
-              <div key={star} className="flex items-center gap-2">
-                <span className="text-[10px] text-stone-400 w-2.5 text-right shrink-0">{star}</span>
-                <HiStar className="text-amber-400 text-[9px] shrink-0" />
-                <div className="flex-1 h-1 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-amber-400 rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <span className="text-[10px] text-stone-400 w-4 shrink-0 text-right">{count}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      {onShowMore && (
-        <button
-          onClick={onShowMore}
-          className="text-[12px] font-semibold text-indigo-900 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
-        >
-          See more ratings
         </button>
       )}
     </div>
@@ -399,25 +375,37 @@ function RatingBar({ reviews, avgRating, totalReviews, onShowMore }) {
 
 /* ─── Review Row ────────────────────────────────────────────────── */
 
-function ReviewRow({ review, clamp = false, isMine = false, menuOpen = false, onMenuToggle, onEdit, onDelete }) {
+function ReviewRow({
+  review,
+  clamp = false,
+  isMine = false,
+  menuOpen = false,
+  onMenuToggle,
+  onEdit,
+  onDelete,
+}) {
   const name = typeof review.user === "object" ? review.user?.name || "Reader" : review.userName || "Reader";
   const timeValue = review.updatedAt ?? review.createdAt;
   const isEdited =
-    review.updatedAt && review.createdAt &&
+    review.updatedAt &&
+    review.createdAt &&
     new Date(review.updatedAt).getTime() - new Date(review.createdAt).getTime() > 60 * 1000;
 
   return (
-    <div className={`relative flex gap-3.5 px-5 py-4 ${menuOpen ? "z-30" : ""}`}>
-      <Avatar name={name} size="w-7 h-7 text-[11px]" />
+    <div className={`relative flex gap-3.5 px-6 py-4 ${menuOpen ? "z-30" : ""}`}>
+      <Avatar name={name} size="w-9 h-9 text-sm" />
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="text-[13px] font-semibold text-stone-800 dark:text-stone-200">{name}</span>
+              <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
+                {name}
+              </span>
               {review.rating > 0 && <StarRating value={review.rating} readonly size="text-xs" />}
             </div>
-            <span className="text-[10.5px] italic text-stone-400 mt-0.5 block">
-              {formatRelativeTime(timeValue)}{isEdited ? " · edited" : ""}
+            <span className="text-xs text-stone-400 mt-0.5 block">
+              {formatRelativeTime(timeValue)}
+              {isEdited && " · edited"}
             </span>
           </div>
           {isMine && (onEdit || onDelete) && (
@@ -431,16 +419,15 @@ function ReviewRow({ review, clamp = false, isMine = false, menuOpen = false, on
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  // Ensure we're only toggling this specific review's menu
                   onMenuToggle?.(String(review._id));
                 }}
-                className="w-7 h-7 flex items-center justify-center text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
               >
                 <HiEllipsisVertical />
               </button>
               {menuOpen && (
                 <div
-                  className="absolute bottom-full right-0 z-50 mb-1 w-28 overflow-visible rounded-[3px] border border-stone-200 bg-[#faf8f3] shadow-xl ring-1 ring-black/5 dark:border-stone-700 dark:bg-stone-900"
+                  className="absolute bottom-full right-0 z-50 mb-1 w-32 overflow-visible rounded-xl border border-stone-200 bg-white shadow-xl ring-1 ring-black/5 dark:border-stone-700 dark:bg-stone-900"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -456,8 +443,10 @@ function ReviewRow({ review, clamp = false, isMine = false, menuOpen = false, on
                         onMenuToggle?.("");
                         onEdit(review);
                       }}
-                      className="w-full text-left px-3 py-2 text-xs font-medium text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
-                    >Edit</button>
+                      className="w-full text-left px-3 py-2.5 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                    >
+                      Edit
+                    </button>
                   )}
                   {onDelete && (
                     <button
@@ -468,15 +457,21 @@ function ReviewRow({ review, clamp = false, isMine = false, menuOpen = false, on
                         onMenuToggle?.("");
                         onDelete(review);
                       }}
-                      className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                    >Delete</button>
+                      className="w-full text-left px-3 py-2.5 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
+                    >
+                      Delete
+                    </button>
                   )}
                 </div>
               )}
             </div>
           )}
         </div>
-        <p className={`mt-1.5 text-[13px] leading-relaxed text-stone-500 dark:text-stone-400${clamp ? " line-clamp-3" : ""}`}>
+        <p
+          className={`mt-1.5 text-sm leading-relaxed text-stone-600 dark:text-stone-400 ${
+            clamp ? "line-clamp-3" : ""
+          }`}
+        >
           {review.comment}
         </p>
       </div>
@@ -485,13 +480,14 @@ function ReviewRow({ review, clamp = false, isMine = false, menuOpen = false, on
 }
 
 /* ─── Section Divider ───────────────────────────────────────────── */
-function SectionTitle({ children }) {
+function SectionTitle({ children, icon }) {
   return (
-    <div className="flex items-center gap-3 mb-5">
-      <h2 className="font-serif text-[17px] font-semibold text-stone-800 dark:text-stone-100 whitespace-nowrap">
+    <div className="flex items-center gap-3 mb-6">
+      {icon && <span className="text-stone-400">{icon}</span>}
+      <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">
         {children}
       </h2>
-      <div className="flex-1 border-t border-dashed border-stone-300 dark:border-stone-700" />
+      <div className="flex-1 h-px bg-gradient-to-r from-stone-200 dark:from-stone-800 to-transparent" />
     </div>
   );
 }
@@ -499,123 +495,127 @@ function SectionTitle({ children }) {
 /* ─── Main Page ─────────────────────────────────────────────────── */
 
 export default function BookDetailPage() {
-  const location = useLocation();
-  const { id }   = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const notify   = useNotification();
-  const excludeSimilarBookId = String(location.state?.excludeSimilarBookId || "").trim();
+  const notify = useNotification();
 
-  const [book,   setBook]   = useState(null);
+  const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [access,  setAccess]  = useState(null);
-  const [error,   setError]   = useState(null);
+  const [error, setError] = useState(null);
 
-  const [shelfStatus,   setShelfStatus]   = useState(null);
+  const [shelfStatus, setShelfStatus] = useState(null);
   const [showShelfMenu, setShowShelfMenu] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
 
-  const [showDescModal,    setShowDescModal]    = useState(false);
+  const [showDescModal, setShowDescModal] = useState(false);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
-  const [myRating,       setMyRating]       = useState(0);
-  const [comment,        setComment]        = useState("");
-  const [reviews,        setReviews]        = useState([]);
-  const [posting,        setPosting]        = useState(false);
+  const [myRating, setMyRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const [posting, setPosting] = useState(false);
   const [deletingReview, setDeletingReview] = useState(false);
-  const [myReviewId,     setMyReviewId]     = useState(null);
+  const [myReviewId, setMyReviewId] = useState(null);
   const [openReviewMenuId, setOpenReviewMenuId] = useState("");
 
-  const [recommendations,         setRecommendations]         = useState([]);
-  const [recommendationsLoading,  setRecommendationsLoading]  = useState(false);
-  const [collabRecommendations,        setCollabRecommendations]        = useState([]);
+  // Collaborative recommendations (renamed to "You may also like")
+  const [collabRecommendations, setCollabRecommendations] = useState([]);
   const [collabRecommendationsLoading, setCollabRecommendationsLoading] = useState(false);
 
-  const isLoggedIn     = Boolean(localStorage.getItem("token"));
-  const dropdownRef    = useRef(null);
+  const isLoggedIn = Boolean(localStorage.getItem("token"));
+  const dropdownRef = useRef(null);
   const reviewEditorRef = useRef(null);
 
   /* ── Data loading ── */
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError(null); setBook(null); setAccess(null); setReviews([]);
-    setShelfStatus(null); setMyReviewId(null); setMyRating(0); setComment("");
+    setError(null);
+    setBook(null);
+    setReviews([]);
+    setShelfStatus(null);
+    setMyReviewId(null);
+    setMyRating(0);
+    setComment("");
     setOpenReviewMenuId("");
-    setRecommendations([]); setRecommendationsLoading(true);
-    setCollabRecommendations([]); setCollabRecommendationsLoading(true);
+    setCollabRecommendations([]);
+    setCollabRecommendationsLoading(true);
 
-    (async () => {
-      try {
-        const [bookRes, reviewRes, recRes, collabRes] = await Promise.allSettled([
-          fetchBookDetail(id),
-          API.get(`/books/${id}/reviews`),
-          fetchBookRecommendations(id, { limit: 12, excludeBookId: excludeSimilarBookId }),
-          fetchBookCollaborativeRecommendations(id, { limit: 12 }),
-        ]);
+    fetchBookDetail(id)
+      .then((res) => {
         if (!active) return;
+        const d = res.data?.book || res.data;
+        setBook(d);
+        setShelfStatus(d?.shelfStatus || null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        console.error("Book detail fetch error:", err);
+        setError("Could not load book details.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-        if (bookRes.status === "fulfilled") {
-          const d = bookRes.value.data?.book || bookRes.value.data;
-          setBook(d);
-          setAccess(bookRes.value.data?.access || null);
-          setShelfStatus(d?.shelfStatus || null);
-        } else {
-          setError("Could not load book details.");
+    API.get(`/books/${id}/reviews`)
+      .then((res) => {
+        if (!active) return;
+        const d = res.data;
+        const list = d?.reviews ?? d?.data ?? (Array.isArray(d) ? d : []);
+        setReviews(list);
+        const me = getCurrentUser();
+        const mine = me?._id
+          ? list.find((r) => {
+              const uid = typeof r.user === "object" ? r.user?._id : r.user;
+              return uid && String(uid) === String(me._id);
+            })
+          : null;
+        if (mine) {
+          setMyReviewId(mine._id);
+          setMyRating(Number.isFinite(mine.rating) ? mine.rating : 0);
+          setComment(typeof mine.comment === "string" ? mine.comment : "");
         }
+        if (d?.averageRating !== undefined) {
+          setBook((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  averageRating: d.averageRating,
+                  totalRatings: d.totalRatings ?? list.length,
+                }
+              : prev
+          );
+        }
+      })
+      .catch(() => {});
 
-        if (reviewRes.status === "fulfilled") {
-          const d    = reviewRes.value.data;
-          const list = d?.reviews ?? d?.data ?? (Array.isArray(d) ? d : []);
-          setReviews(list);
-          const me   = getCurrentUser();
-          const mine = me?._id
-            ? list.find((r) => {
-                const uid = typeof r.user === "object" ? r.user?._id : r.user;
-                return uid && String(uid) === String(me._id);
-              })
-            : null;
-          if (mine) {
-            setMyReviewId(mine._id);
-            setMyRating(Number.isFinite(mine.rating) ? mine.rating : 0);
-            setComment(typeof mine.comment === "string" ? mine.comment : "");
-          }
-          if (d?.averageRating !== undefined) {
-            setBook((prev) =>
-              prev ? { ...prev, averageRating: d.averageRating, totalRatings: d.totalRatings ?? list.length } : prev
-            );
-          }
-        }
+    // Only fetch collaborative recommendations
+    fetchBookCollaborativeRecommendations(id, { limit: 12 })
+      .then((res) => {
+        if (!active) return;
+        const d = res.data;
+        setCollabRecommendations(d?.books ?? d?.data ?? (Array.isArray(d) ? d : []));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setCollabRecommendationsLoading(false);
+      });
 
-        if (recRes.status === "fulfilled") {
-          const d = recRes.value.data;
-          setRecommendations(d?.books ?? d?.data ?? (Array.isArray(d) ? d : []));
-        }
-        if (collabRes.status === "fulfilled") {
-          const d = collabRes.value.data;
-          setCollabRecommendations(d?.books ?? d?.data ?? (Array.isArray(d) ? d : []));
-        }
-      } catch {
-        if (active) setError("Could not load book details.");
-      } finally {
-        if (active) {
-          setLoading(false);
-          setRecommendationsLoading(false);
-          setCollabRecommendationsLoading(false);
-        }
-      }
-    })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   /* ── Click-outside for dropdowns ── */
   useEffect(() => {
     const fn = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowShelfMenu(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
+        setShowShelfMenu(false);
     };
     document.addEventListener("mousedown", fn);
     return () => document.removeEventListener("mousedown", fn);
   }, []);
 
-  // Close review menu when modal opens
   useEffect(() => {
     if (showReviewsModal) {
       setOpenReviewMenuId("");
@@ -623,25 +623,21 @@ export default function BookDetailPage() {
   }, [showReviewsModal]);
 
   useEffect(() => {
-    // Only set up click listener if modal is open and menu is open
     if (!openReviewMenuId || !showReviewsModal) return;
-    
+
     const handleClickOutside = (e) => {
-      // Check if click is on a button or inside the menu with role="presentation"
       const isMenuContent = e.target?.closest('[role="presentation"]');
-      const isButton = e.target?.closest('button');
-      
-      // Only close if clicking completely outside both
+      const isButton = e.target?.closest("button");
+
       if (!isMenuContent && !isButton) {
         setOpenReviewMenuId("");
       }
     };
-    
-    // Use capture phase and small delay to avoid closing on the opening click
+
     const timeoutId = setTimeout(() => {
       document.addEventListener("click", handleClickOutside, true);
     }, 5);
-    
+
     return () => {
       clearTimeout(timeoutId);
       document.removeEventListener("click", handleClickOutside, true);
@@ -652,13 +648,17 @@ export default function BookDetailPage() {
   const handleShelfSelect = async (status) => {
     if (!localStorage.getItem("token")) {
       notify.info("Login Required", "Please login to use your bookshelf.");
-      navigate("/auth/login"); return;
+      navigate("/auth/login");
+      return;
     }
     try {
       if (status) {
         await API.post("/bookshelf", { bookId: id, status });
         setShelfStatus(status);
-        notify.success("Shelf Updated", `Added to "${SHELF_OPTIONS.find((o) => o.key === status)?.label}"`);
+        notify.success(
+          "Shelf Updated",
+          `Added to "${SHELF_OPTIONS.find((o) => o.key === status)?.label}"`
+        );
       } else {
         await API.delete(`/bookshelf/${id}`);
         setShelfStatus(null);
@@ -682,7 +682,11 @@ export default function BookDetailPage() {
 
   const handleComment = async () => {
     if (!comment.trim()) return;
-    if (!isLoggedIn) { notify.info("Login Required", "Please login to post a review."); navigate("/auth/login"); return; }
+    if (!isLoggedIn) {
+      notify.info("Login Required", "Please login to post a review.");
+      navigate("/auth/login");
+      return;
+    }
     setPosting(true);
     try {
       const { data } = await API.post(`/books/${id}/reviews`, {
@@ -693,92 +697,156 @@ export default function BookDetailPage() {
       const newReview = data?.review ?? {
         _id: Date.now().toString(),
         user: { _id: me?._id || "me", name: me?.name || "You" },
-        comment: comment.trim(), rating: myRating,
+        comment: comment.trim(),
+        rating: myRating,
         createdAt: new Date().toISOString(),
       };
       setMyReviewId(newReview._id);
       setReviews((prev) => {
         const idx = prev.findIndex((r) => r._id === newReview._id);
-        if (idx >= 0) { const next = [...prev]; next[idx] = newReview; return next; }
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = newReview;
+          return next;
+        }
         return [newReview, ...prev];
       });
       if (data?.stats) {
         setBook((prev) =>
-          prev ? { ...prev, averageRating: data.stats.averageRating ?? prev.averageRating, totalRatings: data.stats.totalRatings ?? prev.totalRatings } : prev
+          prev
+            ? {
+                ...prev,
+                averageRating: data.stats.averageRating ?? prev.averageRating,
+                totalRatings: data.stats.totalRatings ?? prev.totalRatings,
+              }
+            : prev
         );
       }
       notify.success("Saved", "Your review has been saved.");
     } catch (err) {
       notify.error("Error", err.response?.data?.message || "Failed to post review.");
-    } finally { setPosting(false); }
+    } finally {
+      setPosting(false);
+    }
   };
 
   const handleEditMyReview = (review) => {
-    if (!isLoggedIn) { notify.info("Login Required", "Please login to edit your review."); navigate("/auth/login"); return; }
+    if (!isLoggedIn) {
+      notify.info("Login Required", "Please login to edit your review.");
+      navigate("/auth/login");
+      return;
+    }
     if (!review?._id) return;
     setMyReviewId(review._id);
     setMyRating(Number.isFinite(Number(review.rating)) ? Number(review.rating) : 0);
     setComment(typeof review.comment === "string" ? review.comment : "");
     setShowReviewsModal(false);
     setOpenReviewMenuId("");
-    setTimeout(() => reviewEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    setTimeout(
+      () =>
+        reviewEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      100
+    );
   };
 
   const handleDeleteMyReview = async (review) => {
-    if (!isLoggedIn) { notify.info("Login Required", "Please login to delete your review."); navigate("/auth/login"); return; }
+    if (!isLoggedIn) {
+      notify.info("Login Required", "Please login to delete your review.");
+      navigate("/auth/login");
+      return;
+    }
     if (deletingReview) return;
     const reviewId = review?._id ?? myReviewId;
     if (!reviewId) return;
-    
-    // Close menu first
+
     setOpenReviewMenuId("");
-    
-    // Show confirmation
+
     if (!window.confirm("Delete your review?")) return;
-    
-    // Close modal and start deletion
+
     setShowReviewsModal(false);
     setDeletingReview(true);
     try {
       const { data } = await API.delete(`/books/${id}/reviews`);
       setReviews((prev) => prev.filter((r) => String(r?._id) !== String(reviewId)));
-      setMyReviewId(null); setMyRating(0); setComment(""); setOpenReviewMenuId("");
+      setMyReviewId(null);
+      setMyRating(0);
+      setComment("");
+      setOpenReviewMenuId("");
       if (data?.stats) {
         setBook((prev) =>
-          prev ? { ...prev, averageRating: data.stats.averageRating ?? prev.averageRating, totalRatings: data.stats.totalRatings ?? prev.totalRatings } : prev
+          prev
+            ? {
+                ...prev,
+                averageRating: data.stats.averageRating ?? prev.averageRating,
+                totalRatings: data.stats.totalRatings ?? prev.totalRatings,
+              }
+            : prev
         );
       }
       notify.success("Deleted", "Your review has been deleted.");
     } catch (err) {
       notify.error("Error", err.response?.data?.message || "Failed to delete review.");
-    } finally { setDeletingReview(false); }
+    } finally {
+      setDeletingReview(false);
+    }
   };
 
   const handleRatingChange = (value) => {
-    if (!isLoggedIn) { notify.info("Login Required", "Please login to rate this book."); navigate("/auth/login"); return; }
+    if (!isLoggedIn) {
+      notify.info("Login Required", "Please login to rate this book.");
+      navigate("/auth/login");
+      return;
+    }
     setMyRating(value);
   };
 
+  const handleLike = () => {
+    if (!isLoggedIn) {
+      notify.info("Login Required", "Please login to like this book.");
+      navigate("/auth/login");
+      return;
+    }
+    setIsLiked(!isLiked);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: book.title,
+        text: `Check out "${book.title}" by ${book.author}`,
+        url: window.location.href,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        notify.success("Copied", "Link copied to clipboard!");
+      }).catch(() => {});
+    }
+  };
+
   /* ── Derived values ── */
-  if (error) return (
-    <div className="min-h-screen bg-[#faf8f3] dark:bg-[#18160f] flex items-center justify-center">
-      <div className="text-center space-y-3">
-        <p className="font-serif text-base text-stone-600 dark:text-stone-400">{error}</p>
-        <button onClick={() => navigate(-1)} className="text-[13px] text-indigo-900 hover:underline dark:text-indigo-400">Go back</button>
+  if (error)
+    return (
+      <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-stone-600 dark:text-stone-400">{error}</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+          >
+            Go back
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   if (loading) return <Skeleton />;
   if (!book) return null;
 
-  const canRead       = access?.canRead;
-  const avgRating     = Number.isFinite(book.averageRating) ? book.averageRating : 0;
-  const totalReviews  = Number.isFinite(book.totalRatings)  ? book.totalRatings  : reviews.length;
-  const totalReads    = Number.isFinite(book.reads)         ? book.reads         : 0;
-  const currentShelf  = SHELF_OPTIONS.find((o) => o.key === shelfStatus);
-  const isLongDesc    = (book.description?.length ?? 0) > 220;
-  const priceLabel    = book.isPaid ? `Rs. ${book.price}` : "Free";
+  const avgRating = Number.isFinite(book.averageRating) ? book.averageRating : 0;
+  const totalReviews = Number.isFinite(book.totalRatings) ? book.totalRatings : reviews.length;
+  const totalReads = Number.isFinite(book.reads) ? book.reads : 0;
+  const currentShelf = SHELF_OPTIONS.find((o) => o.key === shelfStatus);
+  const isLongDesc = (book.description?.length ?? 0) > 220;
 
   const sortedReviews = [...reviews].sort((a, b) => {
     const aT = a?.updatedAt || a?.createdAt ? new Date(a.updatedAt ?? a.createdAt).getTime() : 0;
@@ -786,205 +854,235 @@ export default function BookDetailPage() {
     return bT - aT;
   });
 
-  const myReview      = myReviewId ? sortedReviews.find((r) => String(r?._id) === String(myReviewId)) : null;
-  const previewReviews = myReview ? [myReview, ...sortedReviews.filter((r) => String(r._id) !== String(myReviewId)).slice(0, 1)] : sortedReviews.slice(0, 2);
+  const myReview = myReviewId
+    ? sortedReviews.find((r) => String(r?._id) === String(myReviewId))
+    : null;
+  const previewReviews = myReview
+    ? [myReview, ...sortedReviews.filter((r) => String(r._id) !== String(myReviewId)).slice(0, 1)]
+    : sortedReviews.slice(0, 2);
   const hasMoreReviews = sortedReviews.length > previewReviews.length;
 
   const otherInfo = [
-    { label: "Pages",       value: book.pageCount       ? `${book.pageCount}` : "—" },
-    { label: "Published",   value: book.publicationDate?.trim() || "—" },
-    { label: "ISBN",        value: book.isbn?.trim()     || "—" },
-    { label: "Language",    value: book.language?.trim() || "—" },
+    { label: "Pages", value: book.pageCount ? `${book.pageCount}` : "—", icon: <HiOutlineBookOpen /> },
+    { label: "Published", value: book.publicationDate?.trim() || "—", icon: <HiOutlineCalendar /> },
+    { label: "ISBN", value: book.isbn?.trim() || "—", icon: <HiOutlineBookmarkAlt /> },
+    { label: "Language", value: book.language?.trim() || "—", icon: <HiOutlineGlobe /> },
   ];
 
   /* ── Render ── */
   return (
     <>
-      {showDescModal    && <DescriptionModal text={book.description} onClose={() => setShowDescModal(false)} />}
+      {showDescModal && (
+        <DescriptionModal text={book.description} onClose={() => setShowDescModal(false)} />
+      )}
       {showReviewsModal && (
         <ReviewsModal
-          reviews={sortedReviews} avgRating={avgRating} totalReviews={totalReviews}
-          myReviewId={myReviewId} openReviewMenuId={openReviewMenuId}
-          onMenuToggle={(rid) => setOpenReviewMenuId((prev) => String(prev) === String(rid) ? "" : String(rid))}
-          onEditMyReview={handleEditMyReview} onDeleteMyReview={handleDeleteMyReview}
+          reviews={sortedReviews}
+          avgRating={avgRating}
+          totalReviews={totalReviews}
+          myReviewId={myReviewId}
+          openReviewMenuId={openReviewMenuId}
+          onMenuToggle={(rid) =>
+            setOpenReviewMenuId((prev) => (String(prev) === String(rid) ? "" : String(rid)))
+          }
+          onEditMyReview={handleEditMyReview}
+          onDeleteMyReview={handleDeleteMyReview}
           onClose={() => setShowReviewsModal(false)}
         />
       )}
 
-      <div className="min-h-screen bg-[#faf8f3] dark:bg-[#18160f] font-sans">
+      <div className="min-h-screen bg-stone-50 dark:bg-stone-950 font-sans">
 
-        {/* ── Top bar ─────────────────────────────────────────── */}
-        <div className="border-b border-stone-200/70 dark:border-stone-800">
-          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+        {/* ── Top Navigation ────────────────────────────────────── */}
+        <div className="border-b border-stone-200 dark:border-stone-800 sticky top-0 bg-white/90 dark:bg-stone-950/90 backdrop-blur-md z-40">
+          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
             <button
               onClick={() => navigate(-1)}
-              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
+              className="group inline-flex items-center gap-2 text-sm font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors"
             >
-              <HiArrowLeft /> Back to Library
+              <HiArrowLeft className="group-hover:-translate-x-0.5 transition-transform" />
+              Back to library
             </button>
           </div>
         </div>
 
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-[280px_minmax(0,1fr)]">
 
-            <div className="min-w-0 space-y-12">
-
-              {/* ── HERO: Cover + Meta ──────────────────────────── */}
-              <div className="grid gap-8 md:grid-cols-[225px_minmax(0,1fr)] md:items-start">
-
-                {/* Cover */}
-                <div className="mx-auto w-full max-w-[225px] md:mx-0 shrink-0">
-                  {/* Physical book shadow */}
-                  <div
-                    className="relative rounded-[3px] overflow-hidden"
-                    style={{ boxShadow: "4px 6px 20px rgba(60,40,10,0.18), 1px 2px 4px rgba(60,40,10,0.12)" }}
-                  >
-                    <div className="aspect-[177/266] w-full bg-indigo-50">
-                      <CoverImage
-                        src={book.coverImage}
-                        alt={book.title}
-                        fallbackClassName="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-indigo-50 via-violet-50 to-indigo-100"
-                        iconClassName="text-5xl text-indigo-300"
-                      />
-                    </div>
-                    {/* Spine gloss */}
-                    <div className="pointer-events-none absolute inset-y-0 left-0 w-[6px] bg-gradient-to-r from-black/10 to-transparent" />
-                  </div>
-
-                  {/* Shelf button — responsive on all devices */}
-                  <div className="relative mt-3" ref={dropdownRef}>
-                    <button
-                      type="button"
-                      onClick={() => setShowShelfMenu((v) => !v)}
-                      className={`w-full flex items-center justify-center gap-2 py-3 px-4 text-[13px] font-semibold border transition-colors rounded-[3px] ${
-                        shelfStatus
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-900 dark:border-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300"
-                          : "border-stone-300 bg-white text-stone-500 hover:border-indigo-700 hover:text-indigo-900 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400 dark:hover:border-indigo-500 dark:hover:text-indigo-300"
-                      }`}
-                    >
-                      {shelfStatus ? <HiBookmark className="text-indigo-700 dark:text-indigo-300" /> : <HiOutlineBookmark />}
-                      {currentShelf ? currentShelf.label : "Add to Shelf"}
-                    </button>
-                    {showShelfMenu && (
-                      <ShelfDropdown current={shelfStatus} onSelect={handleShelfSelect} onClose={() => setShowShelfMenu(false)} />
-                    )}
-                  </div>
-                </div>
-
-                {/* Meta */}
-                <div className="min-w-0 space-y-2">
-
-                  {/* Genre / category crumb */}
-                  <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.18em] leading-tight text-indigo-900 dark:text-indigo-400">
-                    {book.genre && <span>{book.genre}</span>}
-                    {book.genre && book.category && <span className="text-stone-300 dark:text-stone-600">·</span>}
-                    {book.category && <span>{book.category}</span>}
-                  </div>
-
-                  {/* Title */}
-                  <h1 className="font-serif text-[2.2rem] sm:text-[2.6rem] font-bold leading-[1.1] tracking-tight text-stone-900 dark:text-stone-50">
-                    {book.title}
-                  </h1>
-
-                  {/* Author */}
-                  <p className="font-sans italic text-[14px] font-semibold leading-tight text-stone-500 dark:text-stone-400">
-                    by <span className="font-medium italic text-stone-900 dark:text-stone-100">
-                      {book.author || "Unknown Author"}
-                    </span>
-                  </p>
-
-                  {/* Rating row */}
-                  <div className="flex flex-wrap items-center gap-3 leading-tight">
-                    <div className="flex items-center gap-2">
-                      <StarRating value={avgRating} readonly size="text-base" />
-                      <span className="font-serif text-[15px] font-semibold leading-tight text-stone-700 dark:text-stone-300">
-                        {avgRating.toFixed(1)}
-                      </span>
-                    </div>
-                    <span className="text-stone-300 dark:text-stone-700">·</span>
-                    <button
-                      onClick={() => setShowReviewsModal(true)}
-                      className="text-[13px] leading-tight text-stone-500 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors"
-                    >
-                      {totalReviews} review{totalReviews !== 1 ? "s" : ""}
-                    </button>
-                    <span className="text-stone-300 dark:text-stone-700">·</span>
-                    <span className="text-[13px] leading-tight text-stone-400">{totalReads} reads</span>
-                  </div>
-
-                  {/* Price + shelf badge */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`inline-flex items-center rounded-sm px-2.5 py-1 text-[12px] font-bold uppercase tracking-widest font-ui ${
-                        book.isPaid
-                          ? "bg-indigo-100 text-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300"
-                          : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                      }`}
-                    >
-                      {priceLabel}
-                    </span>
-                    {currentShelf && (
-                      <span className={`inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest border ${currentShelf.bg} ${currentShelf.color}`}>
-                        {currentShelf.icon}{currentShelf.label}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* CTA button */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-10">
-                    {canRead ? (
-                      <button
-                        type="button"
-                        onClick={handleReadNow}
-                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2.5 rounded-sm bg-stone-900 px-6 py-3 text-[13.5px] font-bold text-white shadow-sm hover:bg-stone-800 dark:bg-indigo-500 dark:text-white dark:hover:bg-indigo-400 transition-colors mb-3 mt-10"
-                      >
-                        <HiOutlineBookOpen className="text-base" /> Read Now
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/purchase/${book._id}`)}
-                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2.5 rounded-md bg-indigo-900 px-6 py-3.5 text-[13.5px] font-bold text-white shadow-[0_14px_34px_rgba(49,46,129,0.22)] ring-1 ring-indigo-950/10 transition-all hover:-translate-y-0.5 hover:bg-indigo-800 dark:bg-indigo-500 dark:hover:bg-indigo-400 mb-3 mt-10"
-                      >
-                        <HiOutlineLockClosed className="text-base" />
-                        Unlock Access · <span className="font-ui">{priceLabel}</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Description */}
-                  <div className="pt-2 border-t border-dashed border-stone-200 dark:border-stone-800">
-                    <p className="font-serif text-[14.5px] leading-7 text-stone-600 dark:text-stone-400">
-                      {isLongDesc
-                        ? book.description.slice(0, 220).trimEnd() + "…"
-                        : (book.description || "No description available.")}
-                    </p>
-                    {isLongDesc && (
-                      <button
-                        type="button"
-                        onClick={() => setShowDescModal(true)}
-                        className="mt-1.5 text-[12.5px] font-semibold text-indigo-900 hover:text-indigo-700 dark:text-indigo-400"
-                      >
-                        Read more
-                      </button>
-                    )}
-                  </div>
+            {/* ── Left Column: Cover ────────────────────────────── */}
+            <div className="space-y-4">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-stone-200/60 dark:shadow-stone-900/60">
+                <div className="aspect-[2/3] w-full bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
+                  <CoverImage
+                    src={book.coverImage}
+                    alt={book.title}
+                    fallbackClassName="flex h-full w-full flex-col items-center justify-center gap-3"
+                    iconClassName="text-7xl text-stone-300 dark:text-stone-600"
+                  />
                 </div>
               </div>
 
-              {/* ── Book Details Table ───────────────────────────── */}
+              {/* Action Buttons */}
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={handleReadNow}
+                  className="w-full flex items-center justify-center gap-2.5 rounded-2xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-all duration-200"
+                >
+                  <HiOutlineBookOpen className="text-lg" />
+                  Read Now
+                </button>
+
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowShelfMenu((v) => !v)}
+                    className={`w-full flex items-center justify-center gap-2.5 py-3.5 px-4 text-sm font-medium rounded-2xl border-2 transition-all duration-200 ${
+                      shelfStatus
+                        ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400"
+                        : "border-stone-200 bg-white text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400"
+                    }`}
+                  >
+                    {shelfStatus ? (
+                      <HiBookmark className="text-indigo-600 dark:text-indigo-400" />
+                    ) : (
+                      <HiOutlineBookmark />
+                    )}
+                    {currentShelf ? currentShelf.label : "Want to Read"}
+                  </button>
+                  {showShelfMenu && (
+                    <ShelfDropdown
+                      current={shelfStatus}
+                      onSelect={handleShelfSelect}
+                      onClose={() => setShowShelfMenu(false)}
+                    />
+                  )}
+                </div>
+
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleLike}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
+                  >
+                    {isLiked ? (
+                      <HiHeart className="text-rose-500 fill-rose-500" />
+                    ) : (
+                      <HiOutlineHeart />
+                    )}
+                    Like
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
+                  >
+                    <HiOutlineShare />
+                    Share
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Right Column: Content ─────────────────────────── */}
+            <div className="min-w-0 space-y-10">
+
+              {/* ── Book Info ────────────────────────────────────── */}
+              <div className="space-y-4">
+                {/* Genre tags */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {book.genre && (
+                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400">
+                      {book.genre}
+                    </span>
+                  )}
+                  {book.category && (
+                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                      {book.category}
+                    </span>
+                  )}
+                </div>
+
+                {/* Title */}
+                <h1 className="font-serif text-3xl sm:text-4xl font-bold leading-tight tracking-tight text-stone-900 dark:text-stone-50">
+                  {book.title}
+                </h1>
+
+                {/* Author */}
+                <p className="text-base text-stone-500 dark:text-stone-400">
+                  by{" "}
+                  <span className="font-medium text-stone-700 dark:text-stone-300">
+                    {book.author || "Unknown Author"}
+                  </span>
+                </p>
+
+                {/* Rating & Stats */}
+                <div className="flex flex-wrap items-center gap-4 py-2">
+                  <div className="flex items-center gap-2.5">
+                    <StarRating value={avgRating} readonly size="text-base" />
+                    <span className="text-sm font-semibold text-stone-700 dark:text-stone-300">
+                      {avgRating.toFixed(1)}
+                    </span>
+                  </div>
+                  <span className="w-px h-5 bg-stone-300 dark:bg-stone-700" />
+                  <button
+                    onClick={() => setShowReviewsModal(true)}
+                    className="text-sm text-stone-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                  >
+                    {totalReviews} review{totalReviews !== 1 ? "s" : ""}
+                  </button>
+                  <span className="w-px h-5 bg-stone-300 dark:bg-stone-700" />
+                  <div className="flex items-center gap-1.5 text-sm text-stone-400">
+                    <HiOutlineUsers className="text-base" />
+                    {totalReads} reads
+                  </div>
+                </div>
+
+                {/* Shelf badge */}
+                {currentShelf && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                    <span className={`w-1.5 h-1.5 rounded-full ${currentShelf.dotColor}`} />
+                    {currentShelf.label}
+                  </div>
+                )}
+
+                {/* Description */}
+                <div className="pt-4 mt-4 border-t border-stone-200 dark:border-stone-800">
+                  <p className="text-base leading-relaxed text-stone-600 dark:text-stone-400">
+                    {isLongDesc
+                      ? book.description.slice(0, 280).trimEnd() + "…"
+                      : book.description || "No description available."}
+                  </p>
+                  {isLongDesc && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDescModal(true)}
+                      className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
+                    >
+                      Read more →
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Book Details ────────────────────────────────── */}
               <section>
-                <SectionTitle>Book Details</SectionTitle>
-                <div className="border border-stone-200 dark:border-stone-800 rounded-[3px] divide-y divide-stone-100 dark:divide-stone-800 overflow-visible">
-                  {otherInfo.map((item, i) => (
-                    <div key={item.label} className={`flex items-center px-5 py-3.5 ${i % 2 === 0 ? "bg-white dark:bg-stone-900/40" : "bg-stone-50/60 dark:bg-stone-900/20"}`}>
-                      <span className="w-36 shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-400">
-                        {item.label}
-                      </span>
-                      <span className="font-serif text-[14px] text-stone-800 dark:text-stone-200">
-                        {item.value}
-                      </span>
+                <SectionTitle icon={<HiOutlineBookmarkAlt />}>Details</SectionTitle>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden">
+                  {otherInfo.map((item) => (
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-3 px-5 py-3.5 bg-white dark:bg-stone-900/40"
+                    >
+                      <span className="text-stone-400">{item.icon}</span>
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
+                          {item.label}
+                        </p>
+                        <p className="text-sm font-medium text-stone-800 dark:text-stone-200">
+                          {item.value}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -992,31 +1090,27 @@ export default function BookDetailPage() {
 
               {/* ── Reviews ─────────────────────────────────────── */}
               <section>
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <h2 className="font-serif text-[17px] font-semibold text-stone-800 dark:text-stone-100">
+                    <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">
                       Reviews
                     </h2>
-              </div>
-                  <div className="flex items-center gap-3">
-                    {hasMoreReviews && (
-                      <button
-                        onClick={() => setShowReviewsModal(true)}
-                        className="text-[11.5px] font-bold uppercase tracking-wider text-indigo-900 hover:text-indigo-700 dark:text-indigo-400"
-                      >
-                        See all (                    
-                        {reviews.length > 0 && (
-                          <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-900">
-                            {reviews.length}
-                          </span>
-                        )})
-                      </button>
+                    {reviews.length > 0 && (
+                      <span className="text-sm text-stone-400">({reviews.length})</span>
                     )}
                   </div>
+                  {hasMoreReviews && (
+                    <button
+                      onClick={() => setShowReviewsModal(true)}
+                      className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
+                    >
+                      See all →
+                    </button>
+                  )}
                 </div>
 
                 {/* Review list */}
-                <div className="relative isolate overflow-visible rounded-[3px] border border-stone-200 divide-y divide-stone-100 dark:border-stone-800 dark:divide-stone-800">
+                <div className="rounded-2xl border border-stone-200 dark:border-stone-800 divide-y divide-stone-100 dark:divide-stone-800 overflow-hidden bg-white dark:bg-stone-900/40">
                   {previewReviews.length > 0 ? (
                     previewReviews.map((r) => (
                       <ReviewRow
@@ -1024,18 +1118,24 @@ export default function BookDetailPage() {
                         review={r}
                         clamp
                         isMine={Boolean(myReviewId && String(r?._id) === String(myReviewId))}
-                        menuOpen={!showReviewsModal && Boolean(openReviewMenuId && String(openReviewMenuId) === String(r?._id))}
-                        onMenuToggle={(rid) => setOpenReviewMenuId((prev) => String(prev) === String(rid) ? "" : String(rid))}
+                        menuOpen={
+                          !showReviewsModal &&
+                          Boolean(openReviewMenuId && String(openReviewMenuId) === String(r?._id))
+                        }
+                        onMenuToggle={(rid) =>
+                          setOpenReviewMenuId((prev) => (String(prev) === String(rid) ? "" : String(rid)))
+                        }
                         onEdit={handleEditMyReview}
                         onDelete={myReviewId ? handleDeleteMyReview : undefined}
                       />
                     ))
                   ) : (
-                    <div className="flex items-center justify-center py-12 px-6 text-center">
-                      <div>
-                        <HiOutlineChatBubbleLeftRight className="mx-auto text-2xl text-stone-300 dark:text-stone-700 mb-2" />
-                        <p className="font-serif text-[14px] text-stone-500 dark:text-stone-500">No reviews yet — be the first.</p>
-                      </div>
+                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                      <HiOutlineChatBubbleLeftRight className="text-5xl text-stone-300 dark:text-stone-700 mb-4" />
+                      <p className="text-stone-400 dark:text-stone-500 font-medium">No reviews yet</p>
+                      <p className="text-sm text-stone-400 dark:text-stone-500 mt-1">
+                        Be the first to share your thoughts
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1043,24 +1143,24 @@ export default function BookDetailPage() {
                 {/* Write / edit review */}
                 <div
                   ref={reviewEditorRef}
-                  className="mt-5 border border-stone-200 dark:border-stone-800 rounded-[3px] bg-white dark:bg-stone-900/40 p-5"
+                  className="mt-6 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900/40 p-6 transition-all focus-within:border-indigo-400 dark:focus-within:border-indigo-600"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <p className="font-serif text-[15px] font-semibold text-stone-800 dark:text-stone-100">
+                    <p className="text-sm font-semibold text-stone-800 dark:text-stone-100">
                       {myReviewId ? "Edit your review" : "Write a review"}
                     </p>
                     <StarRating value={myRating} onChange={handleRatingChange} size="text-xl" />
                   </div>
 
                   {!isLoggedIn ? (
-                    <p className="text-[13.5px] text-stone-400">
+                    <p className="text-sm text-stone-400">
                       <button
                         onClick={() => navigate("/auth/login")}
-                        className="font-semibold text-indigo-900 hover:underline dark:text-indigo-400"
+                        className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
                       >
                         Sign in
                       </button>{" "}
-                      to leave a review.
+                      to leave a review
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -1068,18 +1168,18 @@ export default function BookDetailPage() {
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                         placeholder="Share your thoughts about this book…"
-                        rows={4}
-                        className="w-full resize-none rounded-[3px] border border-stone-200 bg-[#faf8f3] px-4 py-3 text-[13.5px] font-serif leading-relaxed text-stone-800 placeholder:text-stone-400 focus:border-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-900/15 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:focus:border-indigo-500"
+                        rows={3}
+                        className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 dark:bg-stone-800 dark:border-stone-700 px-4 py-3 text-sm text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 dark:focus:ring-indigo-500/20 transition-all"
                       />
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
-                          {myRating > 0 ? `${myRating} star${myRating > 1 ? "s" : ""}` : "No rating selected"}
+                        <span className="text-xs font-medium uppercase tracking-wider text-stone-400">
+                          {myRating > 0 ? `${myRating} star${myRating > 1 ? "s" : ""}` : "No rating"}
                         </span>
                         <button
                           type="button"
                           onClick={handleComment}
                           disabled={!comment.trim() || posting || deletingReview}
-                          className="rounded-sm bg-stone-900 px-5 py-2 text-[13px] font-bold text-white hover:bg-stone-800 dark:bg-indigo-500 dark:text-white dark:hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-500/20"
                         >
                           {posting ? "Saving…" : myReviewId ? "Update" : "Post"}
                         </button>
@@ -1090,41 +1190,21 @@ export default function BookDetailPage() {
               </section>
 
             </div>
-
-            <aside className="hidden xl:block">
-              <div className="sticky top-8">
-                <ContentBasedFilteringSidebar
-                  books={recommendations}
-                  loading={recommendationsLoading}
-                  title="Similar Books"
-                  variant="sidebar"
-                  maxItems={4}
-                  className="border-stone-200 dark:border-stone-800"
-                  navigationState={{ excludeSimilarBookId: id }}
-                />
-              </div>
-            </aside>
           </div>
+        </div>
 
-          <div className="mt-12 xl:hidden">
-            <ContentBasedFilteringSidebar
-              books={recommendations}
-              loading={recommendationsLoading}
-              title="Similar Books"
-              variant="large"
-              maxItems={4}
-              className="border-stone-200 dark:border-stone-800"
-              navigationState={{ excludeSimilarBookId: id }}
+        {/* ── Full‑width “You may also like” section ────────────── */}
+        <div className="w-full mt-16 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-stone-50 dark:bg-stone-900/50 py-12">
+          <div className="max-w-7xl mx-auto">
+            <SectionTitle icon={<HiOutlineUsers />}>Readers Also Enjoyed</SectionTitle>
+            <CollaborativeFilteringBottom
+              books={collabRecommendations}
+              loading={collabRecommendationsLoading}
+              showRatings  // <-- pass prop to display ratings inside the component
             />
           </div>
-
-          {/* ── Collaborative recs ──────────────────────────────── */}
-          <div className="mt-14">
-            <SectionTitle>Readers Also Enjoyed</SectionTitle>
-            <CollaborativeFilteringBottom books={collabRecommendations} loading={collabRecommendationsLoading} />
-          </div>
-
         </div>
+
       </div>
     </>
   );

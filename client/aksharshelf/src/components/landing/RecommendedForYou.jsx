@@ -14,7 +14,7 @@ const STYLES = `
   .scroll-row { -ms-overflow-style: none; scrollbar-width: none; }
 `;
 
-function FreeBooksSection() {
+function RecommendedForYou() {
   const [books, setBooks]       = useState([]);
   const [loading, setLoading]   = useState(true);
   const [visible, setVisible]   = useState(false);
@@ -36,7 +36,7 @@ function FreeBooksSection() {
     (async () => {
       try {
         const res = await API.get("/books", {
-          params: { page: 1, limit: 12, type: "free" },
+          params: { page: 1, limit: 15, },
         });
         setBooks(res.data.books ?? res.data ?? []);
       } catch (err) {
@@ -66,28 +66,27 @@ function FreeBooksSection() {
     <>
       <style>{STYLES}</style>
 
-      <section ref={sectionRef} className="bg-gray-50 dark:bg-gray-950 section-pad">
+      <section ref={sectionRef} className="relative overflow-hidden bg-gradient-to-br from-sky-50 via-white to-violet-100 dark:from-slate-950 dark:via-slate-900 dark:to-violet-950 section-pad">
         <div className="page-container">
-
+        
           {/* Header */}
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Free Books</h2>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400">
-                No cost
-              </span>
+          <div className="mb-6 flex flex-col gap-4 sm:mb-7 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-2xl">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white sm:text-3xl">
+                Recommended For You 
+              </h2>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <Link to="/books?filter=free" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 whitespace-nowrap">
+            <div className="flex shrink-0 items-center gap-3">
+              <Link to="/books?filter=free" className="flex items-center gap-1 whitespace-nowrap text-sm font-medium text-slate-700 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white">
                 See all <HiArrowRight className="text-sm" />
               </Link>
-              <div className="hidden sm:flex gap-1.5">
+              <div className="hidden gap-1.5 sm:flex">
                 <button onClick={() => scroll("left")} disabled={!canLeft}
-                  className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200">
                   <HiChevronLeft />
                 </button>
                 <button onClick={() => scroll("right")} disabled={!canRight}
-                  className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200">
                   <HiChevronRight />
                 </button>
               </div>
@@ -108,37 +107,31 @@ function FreeBooksSection() {
 
           {/* Scroll row */}
           {!loading && books.length > 0 && (
-            <div ref={rowRef} onScroll={updateArrows} className="scroll-row flex gap-3 overflow-x-auto pb-2 sm:gap-4">
+            <div ref={rowRef} onScroll={updateArrows} className=" h-full scroll-row flex gap-3 overflow-x-auto pb-2 sm:gap-4">
               {books.map((book, i) => (
                 <Link
                   key={book._id}
                   to={`/books/${book._id}`}
-                  className={`group w-[160px] flex-shrink-0 no-underline sm:w-[175px] ${visible ? "slide-right" : "opacity-0"}`}
+                  className={` max-h-full group w-[160px] flex-shrink-0 no-underline sm:w-[180px] ${visible ? "slide-right" : "opacity-0"}`}
                   style={visible ? { animationDelay: `${i * 60}ms` } : {}}
                 >
-                  <div className="relative aspect-[177/266] w-full overflow-hidden rounded-xl shadow-md transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                  <div className="relative aspect-[85/150] w-full overflow-hidden rounded-xl shadow-md transition-all duration-300">
 
                     {/* Cover image — full, no tint */}
                     <CoverImage
                       src={book.coverImage}
                       alt={book.title}
-                      className="absolute inset-0 h-full w-full object-cover"
-                      fallbackClassName="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-100 to-violet-200 dark:from-indigo-950/80 dark:to-violet-950/80"
-                      iconClassName="text-4xl text-indigo-400 dark:text-indigo-600"
+                      className="absolute wd inset-0 h-full w-full object-cover"
+                      fallbackClassName="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-100 via-stone-100 to-slate-200 dark:from-slate-900/80 dark:via-stone-900/80 dark:to-slate-800/80"
+                      iconClassName="text-4xl text-slate-500 dark:text-slate-400"
                     />
 
                     {/* Subtle bottom gradient so text is readable */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
-
                     {/* Dark overlay on hover */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 pointer-events-none" />
 
-                    {/* Bottom content */}
                     <div className="absolute inset-0 flex flex-col justify-end p-3 z-10">
-                      <h3 className="text-white font-bold text-xs leading-snug line-clamp-2 mb-0.5">
-                        {book.title}
-                      </h3>
-                      <p className="text-white/60 text-[10px] truncate">{book.author}</p>
                       <div className="flex items-center gap-1 text-white text-[10px] font-semibold mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         Read now <HiArrowRight className="text-xs" />
                       </div>
@@ -153,7 +146,7 @@ function FreeBooksSection() {
           {!loading && books.length === 0 && (
             <div className="flex flex-col items-center py-16 gap-3">
               <HiOutlineBookOpen className="text-5xl text-gray-300 dark:text-gray-700" />
-              <p className="text-sm text-gray-400">No free books available yet</p>
+              <p className="text-sm text-gray-400">No books available yet</p>
             </div>
           )}
 
@@ -163,4 +156,4 @@ function FreeBooksSection() {
   );
 }
 
-export default FreeBooksSection;
+export default RecommendedForYou;

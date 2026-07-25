@@ -1,123 +1,182 @@
-import { useEffect, useState } from "react";
-import { HiOutlineMagnifyingGlass, HiOutlineBookOpen, HiXMark } from "react-icons/hi2";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState, useRef, useCallback } from "react";
+import {
+  HiOutlineMagnifyingGlass,
+  HiOutlineBookOpen,
+  HiXMark,
+  HiChevronLeft,
+  HiChevronRight,
+  HiStar,
+  HiSparkles,
+  HiClock,
+} from "react-icons/hi2";
+import { useNavigate, } from "react-router-dom";
 import API from "../services/api";
 import BookCard, { BookCardSkeleton } from "../components/BookCard";
-import CoverImage from "../components/CoverImage";
 
-const SKELETON_COUNT = 8;
+// ----------------------------------------------------------------------
+// Constants
+// ----------------------------------------------------------------------
+const SKELETON_COUNT = 8;         // for the main grid
+const ROW_DISPLAY_COUNT = 9;      // how many books to show in each row
 const PAGE_SIZE = 12;
 
-/* MiniCard (Recently Added) */
-const MiniCard = ({ book, onClick }) => (
-  <button
-    onClick={onClick}
-    className="group flex h-full w-[186px] flex-col text-left focus:outline-none"
-  >
-    {/* Cover */}
-    <div className="relative overflow-hidden rounded-[3px] shadow-[2px_4px_14px_rgba(60,40,10,0.13)] transition-all duration-300 group-hover:shadow-[2px_8px_24px_rgba(60,40,10,0.22)]">
-      <div className="aspect-[186/266] w-[186px] bg-indigo-50">
-        <CoverImage
-          src={book.coverImage}
-          alt={book.title}
-          fallbackClassName="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-indigo-50 via-violet-50 to-indigo-100"
-          iconClassName="text-4xl text-indigo-300"
-        />
-      </div>
 
-      {/* "New" ribbon */}
-      <span
-        className="absolute left-0 top-4 bg-indigo-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white shadow"
-        style={{ borderRadius: "0 2px 2px 0" }}
-      >
-        New
-      </span>
-    </div>
+const getTimeContext = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12)
+    return {
+      greeting: "Good morning",
+      gradient:
+        "from-sky-100 via-indigo-50 to-white dark:from-indigo-950 dark:via-slate-900 dark:to-stone-950",
+      accent: "text-indigo-900 dark:text-indigo-300",
+    };
+  if (hour >= 12 && hour < 17)
+    return {
+      greeting: "Good afternoon",
+      gradient:
+        "from-amber-50 via-yellow-50 to-white dark:from-yellow-950 dark:via-stone-900 dark:to-stone-950",
+      accent: "text-amber-900 dark:text-amber-300",
+    };
+  if (hour >= 17 && hour < 21)
+  return {
+    greeting: "Good evening",
+    gradient:
+      "from-blue-100 via-purple-50 to-white dark:from-slate-900 dark:via-indigo-950 dark:to-stone-950",
+    accent: "text-blue-900 dark:text-indigo-300",
+  };
+   return {
+    greeting: "Good night",
+    gradient:
+      "from-blue-100 via-purple-50 to-white dark:from-slate-900 dark:via-indigo-950 dark:to-stone-950",
+    accent: "text-blue-900 dark:text-indigo-300",
+  };
+};
 
-    {/* Meta */}
-    <div className="mt-2.5 flex flex-1 flex-col px-0.5">
-      <p className="truncate min-h-[1.35rem] text-[16px] font-semibold leading-[1.28] tracking-[-0.01em] text-stone-900 dark:text-stone-100">
-        {book.title}
-      </p>
-      <p className="mt-1 line-clamp-1 min-h-[1.35rem] font-sans italic text-[14px] font-semibold leading-[1.35] text-stone-500 dark:text-stone-400">
-        by <span className="font-medium italic text-stone-900 dark:text-stone-100">
-          {book.author || "Unknown Author"}
-        </span>
-      </p>
+// ----------------------------------------------------------------------
+// Horizontal scrollable row (Netflix‑style, hidden scrollbar)
+// ----------------------------------------------------------------------
+const Row = ({ title, icon: Icon, books, loading, onBookClick }) => {
+  const rowRef = useRef(null);
 
-      <p className="mt-auto pt-3 font-sans text-[14px] font-semibold leading-[1.35] tracking-[-0.01em] text-stone-900 dark:text-stone-100">
-        {book.isPaid ? `Rs. ${book.price}` : "Free"}
-      </p>
-    </div>
-  </button>
-);
-
-/* Skeleton for MiniCard */
-const MiniCardSkeleton = () => (
-  <div className="w-[186px] animate-pulse">
-    <div className="aspect-[186/266] w-[186px] rounded-[3px] bg-stone-200 dark:bg-stone-700" />
-    <div className="mt-2.5 space-y-1.5 px-0.5">
-      <div className="h-3.5 w-4/5 rounded bg-stone-200 dark:bg-stone-700" />
-      <div className="h-3 w-1/2 rounded bg-stone-100 dark:bg-stone-800" />
-      <div className="h-3 w-1/3 rounded bg-stone-200 dark:bg-stone-700" />
-      <div className="h-3 w-1/3 rounded bg-stone-200 dark:bg-stone-700" />
-    </div>
-  </div>
-);
-
-/* Main Page */
-export default function BooksPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  const [books, setBooks]       = useState([]);
-  const [recentBooks, setRecentBooks] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [search, setSearch]     = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filter, setFilter]     = useState(() => {
-    const v = String(searchParams.get("filter") || "all").toLowerCase();
-    return ["free", "paid", "all"].includes(v) ? v : "all";
-  });
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedSearch(search.trim());
-    }, 300);
-
-    return () => window.clearTimeout(timer);
-  }, [search]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await API.get("/books", {
-          params: { page: 1, limit: 6 },
-        });
-        setRecentBooks(data.books ?? data ?? []);
-      } catch (err) {
-        console.error(err);
-      }
-    })();
+  const scroll = useCallback((direction) => {
+    if (!rowRef.current) return;
+    const scrollAmount = rowRef.current.clientWidth * 0.75;
+    rowRef.current.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
   }, []);
 
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      scroll("left");
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      scroll("right");
+    }
+  };
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="flex items-center gap-2 font-serif text-lg font-semibold text-stone-800 dark:text-stone-100">
+          {Icon && <Icon className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />}
+          {title}
+        </h2>
+        <div className="flex gap-2" aria-label={`Scroll ${title} row`}>
+          <button
+            onClick={() => scroll("left")}
+            className="rounded-full border border-stone-300 p-1.5 text-stone-500 transition hover:border-indigo-400 hover:text-indigo-600 dark:border-stone-700 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+            aria-label="Scroll left"
+          >
+            <HiChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => scroll("right")}
+            className="rounded-full border border-stone-300 p-1.5 text-stone-500 transition hover:border-indigo-400 hover:text-indigo-600 dark:border-stone-700 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+            aria-label="Scroll right"
+          >
+            <HiChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable container – scrollbar hidden via CSS */}
+      <div
+        ref={rowRef}
+        tabIndex={0}
+        role="region"
+        aria-label={`${title} books list`}
+        onKeyDown={handleKeyDown}
+        className="book-list flex gap-5 overflow-x-auto scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded"
+        style={{ scrollSnapType: "x mandatory" }}
+      >
+        {loading
+          ? Array(ROW_DISPLAY_COUNT)
+              .fill(0)
+              .map((_, i) => (
+                <div key={i} className="w-[160px] sm:w-[175px] flex-shrink-0">
+                  <BookCardSkeleton />
+                </div>
+              ))
+          : books.map((book) => (
+              <div
+                key={book._id}
+                className="w-[160px] sm:w-[175px] flex-shrink-0"
+              >
+                <BookCard
+                  book={book}
+                  onClick={() => onBookClick(book._id)}
+                />
+              </div>
+            ))}
+      </div>
+    </section>
+  );
+};
+
+// ----------------------------------------------------------------------
+// BooksPage – the complete experience
+// ----------------------------------------------------------------------
+export default function BooksPage() {
+  const navigate = useNavigate();
+
+  // Main grid
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Row data
+  const [recentBooks, setRecentBooks] = useState([]);
+  const [recentLoading, setRecentLoading] = useState(true);
+  const [bestBooks, setBestBooks] = useState([]);
+  const [bestLoading, setBestLoading] = useState(true);
+
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const { greeting, gradient} = getTimeContext();
+
+  // ---- Debounced search ----
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // ---- Main grid (paginated) ----
   useEffect(() => {
     let ignore = false;
-
     (async () => {
       setLoading(true);
       setPage(1);
       try {
         const params = { page: 1, limit: PAGE_SIZE };
         if (debouncedSearch) params.search = debouncedSearch;
-        if (filter !== "all") params.type = filter;
-
         const { data } = await API.get("/books", { params });
         if (ignore) return;
-
         const bookList = data.books ?? data ?? [];
         setBooks(bookList);
         setTotal(Number(data.total) || bookList.length);
@@ -131,26 +190,73 @@ export default function BooksPage() {
         if (!ignore) setLoading(false);
       }
     })();
-
     return () => {
       ignore = true;
     };
-  }, [debouncedSearch, filter]);
+  }, [debouncedSearch]);
 
-  const isSearching             = search.trim().length > 0;
-  const shouldShowRecentlyAdded = !loading && recentBooks.length > 0 && !isSearching && filter === "all";
+  // ---- Recently Added ----
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      setRecentLoading(true);
+      try {
+        const { data } = await API.get("/books", {
+          params: {
+            sort: "createdAt",
+            order: "desc",
+            limit: ROW_DISPLAY_COUNT,
+          },
+        });
+        if (ignore) return;
+        setRecentBooks(data.books ?? data ?? []);
+      } catch (err) {
+        console.error("Recently added:", err);
+      } finally {
+        if (!ignore) setRecentLoading(false);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  // ---- Best Books ----
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      setBestLoading(true);
+      try {
+        const { data } = await API.get("/books", {
+          params: {
+            sort: "rating",
+            order: "desc",
+            limit: ROW_DISPLAY_COUNT,
+          },
+        });
+        if (ignore) return;
+        setBestBooks(data.books ?? data ?? []);
+      } catch (err) {
+        console.error("Best books:", err);
+      } finally {
+        if (!ignore) setBestLoading(false);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const isSearching = search.trim().length > 0;
   const hasMore = books.length < total;
 
   const loadMoreBooks = async () => {
     if (loadingMore || !hasMore) return;
-
     const nextPage = page + 1;
     setLoadingMore(true);
     try {
       const params = { page: nextPage, limit: PAGE_SIZE };
       if (debouncedSearch) params.search = debouncedSearch;
-      if (filter !== "all") params.type = filter;
-
       const { data } = await API.get("/books", { params });
       const bookList = data.books ?? data ?? [];
       setBooks((prev) => [...prev, ...bookList]);
@@ -163,129 +269,135 @@ export default function BooksPage() {
     }
   };
 
-  /*  Render  */
+  const handleBookClick = (id) => navigate(`/books/${id}`);
+
+  const gridClasses =
+    "grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(175px,1fr))] md:gap-x-5 md:gap-y-8";
+
   return (
-    <div className="min-h-screen bg-[#faf8f3] dark:bg-[#18160f]">
+    <div className="min-h-screen bg-[#faf8f3] dark:bg-[#18160f] animate-fade-in">
+      {/* Hide scrollbar for horizontal book rows */}
+      <style>{`
+        .book-list::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
 
-      {/*  Top bar */}
-      <div className="border-b border-stone-200/80 bg-[#faf8f3] dark:border-stone-800 dark:bg-[#18160f]">
-        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-
-            {/* Title */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-900 dark:text-indigo-400 mb-1">
-                Library
-              </p>
-              <h1 className="font-serif text-[2.1rem] font-bold leading-none tracking-tight text-stone-900 dark:text-stone-50">
-                Books
-              </h1>
-              <p className="font-sans text-[14px] mt-1.5 text-stone-400 dark:text-stone-500">
-                {loading
-                  ? "Loading catalogue…"
-                  : `${total.toLocaleString()} title${total !== 1 ? "s" : ""} in the catalogue`}
-              </p>
+      {/* ========== HERO ========== */}
+      {!isSearching && (
+        <div
+          className={`relative overflow-hidden bg-gradient-to-b ${gradient} px-4 pb-12 pt-16 sm:px-6 lg:px-8 transition-colors duration-1000`}
+        >
+          <div className="mx-auto max-w-7xl">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-stone-500 dark:text-stone-400 mb-2">
+              Library
+            </p>
+            <h1 className="font-serif text-4xl font-bold tracking-tight text-stone-900 dark:text-stone-50 sm:text-5xl">
+              {greeting}, reader
+            </h1>
+            <p className="mt-3 max-w-xl text-base text-stone-600 dark:text-stone-300">
+              Your next great read is waiting. Dive into curated shelves, old
+              favourites, and hidden gems.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/70 dark:bg-stone-800/70 px-3 py-1 text-xs font-medium text-stone-600 dark:text-stone-300 backdrop-blur-sm">
+                <HiSparkles className="h-3.5 w-3.5 text-indigo-500" />
+                Personalized shelf
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/70 dark:bg-stone-800/70 px-3 py-1 text-xs font-medium text-stone-600 dark:text-stone-300 backdrop-blur-sm">
+                <HiClock className="h-3.5 w-3.5 text-green-400" />
+                Fresh updates
+              </span>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Search */}
-            <div className="relative w-full sm:w-80">
-              <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-              <input
-                type="text"
-                placeholder="Search by title or author…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-sm border border-stone-300 bg-white py-2.5 pl-10 pr-9 text-[13.5px] text-stone-800 placeholder-stone-400 shadow-sm transition focus:border-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-900/15 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:placeholder-stone-600 dark:focus:border-indigo-500"
-              />
-              {isSearching && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
-                >
-                  <HiXMark className="text-base" />
-                </button>
-              )}
-            </div>
+      {/* ========== SEARCH BAR ========== */}
+      <div
+        className={`sticky top-0 z-20 border-b border-stone-200/80 bg-[#faf8f3]/90 dark:border-stone-800 dark:bg-[#18160f]/90 backdrop-blur-md ${
+          isSearching ? "py-4" : "py-3"
+        }`}
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+          <div className="flex-1" />
+          <div className="relative w-full sm:w-80">
+            <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              type="text"
+              placeholder="Search by title or author…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-full border border-stone-300 bg-white py-2.5 pl-10 pr-9 text-[13.5px] text-stone-800 placeholder-stone-400 shadow-sm transition focus:border-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-900/15 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:placeholder-stone-600 dark:focus:border-indigo-500"
+            />
+            {isSearching && (
+              <button
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
+              >
+                <HiXMark className="text-base" />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/*  Page body */}
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-12">
-
-        {/*  Recently Added */}
-        {(shouldShowRecentlyAdded || loading) && (
-          <section>
-            <div className="mb-5 flex items-center gap-3">
-              <h2 className="font-serif text-[17px] font-semibold text-stone-800 dark:text-stone-100">
-                Recently Added
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 justify-items-start gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-6">
-              {loading
-                ? Array(6).fill(0).map((_, i) => <MiniCardSkeleton key={i} />)
-                : recentBooks.map((book) => (
-                    <MiniCard
-                      key={book._id}
-                      book={book}
-                      onClick={() => navigate(`/books/${book._id}`)}
-                    />
-                  ))}
-            </div>
-          </section>
+      {/* ========== CONTENT ========== */}
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-16">
+        {/* Two horizontal rows – hidden when searching */}
+        {!isSearching && (
+          <>
+            <Row
+              title="Recently Added"
+              icon={HiClock}
+              books={recentBooks}
+              loading={recentLoading}
+              onBookClick={handleBookClick}
+            />
+            <Row
+              title="Best Books"
+              icon={HiStar}
+              books={bestBooks}
+              loading={bestLoading}
+              onBookClick={handleBookClick}
+            />
+          </>
         )}
 
-        {/*  All Books */}
+        {/* ========== ALL BOOKS GRID ========== */}
         <section>
-          {/* Section header + filter tabs */}
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <h2 className="font-serif text-[17px] font-semibold text-stone-800 dark:text-stone-100">
-                All Books
-              </h2>
-              <div className="flex-1 border-t border-dashed border-stone-300 dark:border-stone-700" />
-            </div>
-
-            {/* Filter pills */}
-            <div className="flex items-center gap-1.5">
-              {[
-                { id: "all",  label: "All"  },
-                { id: "free", label: "Free" },
-                { id: "paid", label: "Paid" },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setFilter(item.id)}
-                  className={`rounded-sm border px-3.5 py-1.5 text-[11.5px] font-semibold uppercase tracking-wider transition-all ${
-                    filter === item.id
-                      ? "border-indigo-900 bg-indigo-900 text-white shadow-sm"
-                      : "border-stone-300 bg-white text-stone-500 hover:border-indigo-700 hover:text-indigo-900 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400 dark:hover:border-indigo-500 dark:hover:text-indigo-300"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+          <div className="mb-6 flex items-center gap-3">
+            <h2 className="font-serif text-lg font-semibold text-stone-800 dark:text-stone-100">
+              {isSearching ? "Search Results" : "All Books"}
+            </h2>
+            <div className="flex-1 border-t border-dashed border-stone-300 dark:border-stone-700" />
+            {!isSearching && !loading && (
+              <span className="text-xs text-stone-400 dark:text-stone-500">
+                {total.toLocaleString()} titles
+              </span>
+            )}
           </div>
 
-          {/* Search hint */}
           {isSearching && (
-            <p className="mb-4 text-[12px] text-stone-400 dark:text-stone-500">
+            <p className="mb-4 text-xs text-stone-400 dark:text-stone-500">
               Showing results for{" "}
-              <span className="font-semibold text-stone-600 dark:text-stone-300">"{search}"</span>
+              <span className="font-semibold text-stone-600 dark:text-stone-300">
+                "{search}"
+              </span>
             </p>
           )}
 
-          {/* Grid */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(175px,1fr))] md:gap-x-5 md:gap-y-8">
+          <div className={gridClasses}>
             {loading
-              ? Array(SKELETON_COUNT).fill(0).map((_, i) => <BookCardSkeleton key={i} />)
+              ? Array(SKELETON_COUNT)
+                  .fill(0)
+                  .map((_, i) => <BookCardSkeleton key={i} />)
               : books.map((book) => (
                   <BookCard
                     key={book._id}
                     book={book}
-                    onClick={() => navigate(`/books/${book._id}`)}
+                    onClick={() => handleBookClick(book._id)}
                   />
                 ))}
           </div>
@@ -293,10 +405,9 @@ export default function BooksPage() {
           {!loading && hasMore && (
             <div className="mt-10 flex justify-center">
               <button
-                type="button"
                 onClick={loadMoreBooks}
                 disabled={loadingMore}
-                className="rounded-sm border border-indigo-900 bg-indigo-900 px-5 py-2.5 text-[12px] font-semibold uppercase tracking-wider text-white shadow-sm transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60 dark:border-indigo-500 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                className="rounded-full border border-indigo-200 bg-indigo-50 px-6 py-2.5 text-xs font-semibold uppercase tracking-wider text-indigo-900 shadow-sm transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50"
               >
                 {loadingMore ? "Loading..." : "Load more"}
               </button>
@@ -306,21 +417,19 @@ export default function BooksPage() {
           {/* Empty state */}
           {!loading && books.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-sm border border-dashed border-stone-300 dark:border-stone-700">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-stone-300 dark:border-stone-700">
                 <HiOutlineBookOpen className="text-3xl text-stone-300 dark:text-stone-600" />
               </div>
-              <div>
-                <p className="font-serif text-[15px] font-semibold text-stone-700 dark:text-stone-300">
-                  No titles found
-                </p>
-                <p className="mt-1 text-[12.5px] text-stone-400">
-                  Try a different search term or filter.
-                </p>
-              </div>
+              <p className="font-serif text-[15px] font-semibold text-stone-700 dark:text-stone-300">
+                No titles found
+              </p>
+              <p className="text-xs text-stone-400">
+                Try a different search or browse our shelves.
+              </p>
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="mt-1 text-[12px] font-medium text-indigo-900 underline underline-offset-2 hover:text-indigo-700 dark:text-indigo-400"
+                  className="mt-1 text-xs font-medium text-indigo-900 underline underline-offset-2 hover:text-indigo-700 dark:text-indigo-400"
                 >
                   Clear search
                 </button>

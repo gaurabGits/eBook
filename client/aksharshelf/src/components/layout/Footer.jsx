@@ -11,7 +11,7 @@ const LINKS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800/60">
+    <footer className="relative z-40 bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800/60">
       <div className="page-container py-12">
 
         {/* Top row */}
@@ -88,7 +88,7 @@ export default function Footer() {
             <span className="font-medium text-gray-600 dark:text-gray-400">AksharShelf</span>
             {" "}· Built by{" "}
             <span className="font-medium text-indigo-600 dark:text-indigo-400">
-              Gaurab Lohar
+              Gaurab Bishwakarma
             </span>
           </p>
         </div>
@@ -96,3 +96,4 @@ export default function Footer() {
     </footer>
   );
 }
+

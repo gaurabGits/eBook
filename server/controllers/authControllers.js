@@ -4,6 +4,8 @@ const Bookshelf = require("../models/bookshelf");
 const Notification = require("../models/notification");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 
 const toUserDto = (user) => ({
@@ -11,9 +13,31 @@ const toUserDto = (user) => ({
   name: user.name,
   email: user.email,
   role: user.role,
+  profileImage: user.profileImage || null,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
+
+const normalizeUploadPath = (filePath) => {
+  if (!filePath) return null;
+  const normalized = filePath.replace(/\\/g, "/");
+  return normalized.startsWith("/") ? normalized : `/${normalized}`;
+};
+
+const removeStoredImage = async (imagePath) => {
+  if (!imagePath) return;
+
+  const normalized = imagePath.startsWith("/") ? imagePath.slice(1) : imagePath;
+  const absolutePath = path.resolve(__dirname, "..", normalized);
+
+  try {
+    await fs.promises.unlink(absolutePath);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.error("Failed to remove profile image file:", error.message);
+    }
+  }
+};
 
 const createToken = (user) => {
   const secret = process.env.JWT_SECRET;
@@ -245,6 +269,54 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const uploadProfileImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided." });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.profileImage) {
+      await removeStoredImage(user.profileImage);
+    }
+
+    user.profileImage = normalizeUploadPath(req.file.path);
+    await user.save();
+
+    res.json({
+      message: "Profile picture updated successfully.",
+      profileImage: user.profileImage,
+      user: toUserDto(user),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const removeProfileImage = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.profileImage) {
+      await removeStoredImage(user.profileImage);
+    }
+
+    user.profileImage = null;
+    await user.save();
+
+    res.json({
+      message: "Profile picture removed successfully.",
+      profileImage: null,
+      user: toUserDto(user),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const updatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -325,5 +397,7 @@ module.exports = {
   getProfile,
   getProfileActivity,
   updateProfile,
+  uploadProfileImage,
+  removeProfileImage,
   updatePassword,
 };

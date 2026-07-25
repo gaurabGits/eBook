@@ -1,13 +1,50 @@
 import axios from "axios";
 import { isJwtExpired } from "../utils/jwt";
+import { isPageLoaded, markPageLoaded } from "../utils/loadedPages";
 import { API_BASE_URL } from "./apiBase";
 
 const API = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// Automatically send token with every request
+let activeRequests = 0;
+
+const getCurrentPageKey = () => {
+  if (typeof window === "undefined") return "/";
+  return window.location?.pathname || "/";
+};
+
+const notifyDelay = (isDelayed, pageKey = getCurrentPageKey()) => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("app:delay_loading", { detail: { isDelayed, pageKey } }));
+  }
+};
+
+const onRequestFinish = (config) => {
+  if (!config?.__showGlobalLoader) return;
+
+  if (config.__loaderPageKey) {
+    markPageLoaded(config.__loaderPageKey);
+  }
+
+  activeRequests = Math.max(0, activeRequests - 1);
+  if (activeRequests === 0) {
+    notifyDelay(false, config.__loaderPageKey);
+  }
+};
+
 API.interceptors.request.use((config) => {
+  const pageKey = getCurrentPageKey();
+
+  if (!config.__skipGlobalLoader && !isPageLoaded(pageKey)) {
+    config.__showGlobalLoader = true;
+    config.__loaderPageKey = pageKey;
+    activeRequests++;
+    if (activeRequests === 1) {
+      notifyDelay(true, pageKey);
+    }
+  }
+
   const token = localStorage.getItem("token");
 
   if (token && !isJwtExpired(token)) {
@@ -18,11 +55,18 @@ API.interceptors.request.use((config) => {
   }
 
   return config;
+}, (error) => {
+  onRequestFinish(error?.config);
+  return Promise.reject(error);
 });
 
 API.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    onRequestFinish(res.config);
+    return res;
+  },
   (error) => {
+    onRequestFinish(error?.config);
     const status = error?.response?.status;
     const hadAuthHeader = Boolean(error?.config?.headers?.Authorization);
     const url = String(error?.config?.url || "");

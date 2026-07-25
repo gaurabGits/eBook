@@ -28,6 +28,17 @@ const BookCard = ({ book, onClick, onToggleBookmark, isBookmarked = false }) => 
   const navigate = useNavigate();
   const isCompleted = book?.shelfStatus === "completed";
 
+  const handlePrefetch = () => {
+    if (!book?._id) return;
+    // Prefetch JS chunk and API detail request on hover
+    import("../pages/BookDetailPage.jsx").catch(() => {});
+    import("../services/bookService")
+      .then(({ fetchBookDetail }) => {
+        fetchBookDetail(book._id).catch(() => {});
+      })
+      .catch(() => {});
+  };
+
   const handleOpen = () => {
     if (typeof onClick === "function") {
       onClick(book);
@@ -43,6 +54,8 @@ const BookCard = ({ book, onClick, onToggleBookmark, isBookmarked = false }) => 
         role="button"
         tabIndex={0}
         onClick={handleOpen}
+        onMouseEnter={handlePrefetch}
+        onFocus={handlePrefetch}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -91,10 +104,6 @@ const BookCard = ({ book, onClick, onToggleBookmark, isBookmarked = false }) => 
             by <span className="font-medium italic text-stone-900 dark:text-stone-100">
               {book.author || "Unknown Author"}
             </span>
-          </p>
-
-          <p className="mt-auto pt-3 font-sans text-[14px] font-semibold leading-[1.35] tracking-[-0.01em] text-stone-900 dark:text-stone-100">
-            {book.isPaid ? `Rs. ${book.price}` : "Free"}
           </p>
         </div>
       </div>

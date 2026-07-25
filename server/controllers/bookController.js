@@ -2,13 +2,13 @@ const Book = require("../models/book");
 const Bookmark = require("../models/bookmark");
 const Bookshelf = require("../models/bookshelf");
 const BookActivity = require("../models/bookActivity");
-const Purchase = require("../models/Purchase");
 const path = require("path");
 const fs = require("fs");
 const { computeContentBasedSimilarity } = require("../utils/recommendations/contentBased");
 const { getCollaborativeScores } = require("../utils/recommendations/collaborativeFiltering");
+const { saveBase64ToFile } = require("../utils/base64Storage");
 
-const BOOK_LIST_SELECT = "title author description category coverImage isPaid price averageRating totalRatings reads createdAt updatedAt";
+const BOOK_LIST_SELECT = "title author description category coverImage averageRating totalRatings reads createdAt updatedAt";
 
 const markActivityOnce = async ({ userId, bookId, field }) => {
   if (!userId) return false;
@@ -84,7 +84,7 @@ const addBook = async (req, res) => {
     const pdfFile = req.files?.pdf?.[0];
     const coverFile = req.files?.coverImage?.[0];
 
-    const pdfUrl = pdfFile
+    let pdfUrl = pdfFile
       ? `/uploads/${pdfFile.filename}`
       : req.body.pdfUrl;
 
@@ -92,18 +92,17 @@ const addBook = async (req, res) => {
       return res.status(400).json({ message: "PDF file is required." });
     }
 
-    const coverImage = coverFile
+    let coverImage = coverFile
       ? `/uploads/${coverFile.filename}`
       : req.body.coverImage || "";
 
-    const isPaid = req.body.isPaid === true || req.body.isPaid === "true";
-    const parsedPrice = Number(req.body.price);
-    if (isPaid) {
-      if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-        return res.status(400).json({ message: "Paid books must have a price greater than 0." });
-      }
+    if (pdfUrl.startsWith("data:")) {
+      pdfUrl = await saveBase64ToFile(pdfUrl, "pdf");
     }
-    const price = isPaid ? parsedPrice : 0;
+    if (coverImage.startsWith("data:")) {
+      coverImage = await saveBase64ToFile(coverImage, "cover");
+    }
+
 
     const book = await Book.create({
       title,
@@ -112,8 +111,6 @@ const addBook = async (req, res) => {
       category,
       pdfUrl,
       coverImage,
-      isPaid,
-      price,
     });
 
     res.status(201).json({
@@ -133,25 +130,7 @@ const readBook = async (req, res) => {
       return res.status(404).json({ message: "Book not found" });
     }
 
-    // Paid book check
     const userId = req.user?.id ?? null;
-    const isAdmin = String(req.user?.role || "").toLowerCase() === "admin";
-    if (book.isPaid && !isAdmin) {
-      if (!userId) {
-        return res.status(401).json({ message: "Login required to read this paid book." });
-      }
-
-      const now = new Date();
-      const purchase = await Purchase.findOne({
-        user: userId,
-        book: book._id,
-        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
-      });
-
-      if (!purchase) {
-        return res.status(403).json({ message: "This is a paid book. Purchase required." });
-      }
-    }
 
     const didMarkRead = await markActivityOnce({ userId, bookId: book._id, field: "readAt" });
     if (didMarkRead) {
@@ -201,44 +180,24 @@ const getBookById = async (req, res) => {
 
     await markActivityOnce({ userId, bookId: book._id, field: "viewedAt" });
 
-    let canRead = !book.isPaid;
-
-    if (book.isPaid && req.user) {
-      const isAdmin = req.user.role?.toLowerCase() === "admin";
-      if (isAdmin) {
-        canRead = true;
-      } else {
-        const now = new Date();
-        const purchase = await Purchase.findOne({
-          user: userId,
-          book: book._id,
-          $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
-        });
-        canRead = !!purchase;
-      }
-    }
+    const canRead = true;
 
     let isBookmarked = false;
-    if (userId) {
-      isBookmarked = !!(await Bookmark.findOne({
-        user: userId,
-        book: book._id,
-      }).select("_id"));
-    }
-
     let shelfStatus = null;
     let totalReadSeconds = 0;
     let lastReadPage = 1;
     let lastReadAt = null;
+
     if (userId) {
-      const shelfEntry = await Bookshelf.findOne({
-        user: userId,
-        book: book._id,
-      }).select("status totalReadSeconds lastReadPage lastReadAt");
-      shelfStatus = shelfEntry?.status ?? null;
-      totalReadSeconds = shelfEntry?.totalReadSeconds ?? 0;
-      lastReadPage = shelfEntry?.lastReadPage ?? 1;
-      lastReadAt = shelfEntry?.lastReadAt ?? null;
+      const [bmDoc, shelfDoc] = await Promise.all([
+        Bookmark.findOne({ user: userId, book: book._id }).select("_id"),
+        Bookshelf.findOne({ user: userId, book: book._id }).select("status totalReadSeconds lastReadPage lastReadAt"),
+      ]);
+      isBookmarked = !!bmDoc;
+      shelfStatus = shelfDoc?.status ?? null;
+      totalReadSeconds = shelfDoc?.totalReadSeconds ?? 0;
+      lastReadPage = shelfDoc?.lastReadPage ?? 1;
+      lastReadAt = shelfDoc?.lastReadAt ?? null;
     }
 
     const access = { canRead };
@@ -283,13 +242,6 @@ const getAllBooks = async (req, res) => {
       query.category = category;
     }
 
-    // Filter free / paid / recent
-    if (type === "free") {
-      query.isPaid = false;
-    }
-    if (type === "paid") {
-      query.isPaid = true;
-    }
     if (type === "recent") {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -297,9 +249,7 @@ const getAllBooks = async (req, res) => {
     }
 
     const isUnfilteredQuery = Object.keys(query).length === 0;
-    const total = isUnfilteredQuery
-      ? await Book.estimatedDocumentCount()
-      : await Book.countDocuments(query);
+
     let booksQuery = Book.find(query)
       .select(BOOK_LIST_SELECT)
       .sort({ _id: -1 })
@@ -309,7 +259,13 @@ const getAllBooks = async (req, res) => {
       booksQuery = booksQuery.skip((page - 1) * limit).limit(limit);
     }
 
-    const books = await booksQuery;
+    const [total, books] = await Promise.all([
+      isUnfilteredQuery
+        ? Book.estimatedDocumentCount()
+        : Book.countDocuments(query),
+      booksQuery,
+    ]);
+
     const booksWithBookmark = await attachUserBookFlags(books, req.user?.id);
 
     res.json({
@@ -398,12 +354,41 @@ const getPopularBooks = async (req, res) => {
   }
 };
 
+const recCache = new Map();
+const REC_CACHE_TTL_MS = 2 * 60 * 1000;
+
+function getCachedRec(key) {
+  const cached = recCache.get(key);
+  if (cached && Date.now() - cached.timestamp < REC_CACHE_TTL_MS) {
+    return cached.data;
+  }
+  if (cached) recCache.delete(key);
+  return null;
+}
+
+function setCachedRec(key, data) {
+  if (recCache.size > 500) recCache.clear();
+  recCache.set(key, { data, timestamp: Date.now() });
+}
+
+// Get book recommendations (content-based)
 const getBookRecommendations = async (req, res) => {
   try {
     const bookId = req.params.id;
     const rawLimit = Number(req.query.limit);
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 20) : 10;
     const excludeBookId = String(req.query.excludeBookId || "").trim();
+
+    const cacheKey = `content:${bookId}:${limit}:${excludeBookId}`;
+    const cachedTop = getCachedRec(cacheKey);
+    if (cachedTop) {
+      const booksWithBookmarks = await attachUserBookFlags(cachedTop, req.user?.id);
+      return res.json({
+        algorithm: "content_based",
+        total: booksWithBookmarks.length,
+        books: booksWithBookmarks,
+      });
+    }
 
     const target = await Book.findById(bookId).lean();
     if (!target) {
@@ -421,16 +406,15 @@ const getBookRecommendations = async (req, res) => {
       }
     };
 
-    const baseProjection = "title author description category coverImage isPaid price averageRating totalRatings reads";
+    const baseProjection = "title author description category coverImage averageRating totalRatings reads";
 
     const [sameCategory, sameAuthor, popularFallback] = await Promise.all([
-      Book.find({ _id: { $ne: bookId }, category: target.category }).select(baseProjection).limit(200).lean(),
-      Book.find({ _id: { $ne: bookId }, author: target.author }).select(baseProjection).limit(80).lean(),
+      Book.find({ _id: { $ne: bookId }, category: target.category }).select(baseProjection).limit(30).lean(),
+      Book.find({ _id: { $ne: bookId }, author: target.author }).select(baseProjection).limit(20).lean(),
       Book.find({ _id: { $ne: bookId } })
         .select(baseProjection)
         .sort({ reads: -1, createdAt: -1 })
-        .allowDiskUse(true)
-        .limit(120)
+        .limit(30)
         .lean(),
     ]);
 
@@ -461,6 +445,8 @@ const getBookRecommendations = async (req, res) => {
     });
 
     const top = scored.slice(0, limit);
+    setCachedRec(cacheKey, top);
+
     const topWithBookmarks = await attachUserBookFlags(top, req.user?.id);
 
     return res.json({
@@ -479,6 +465,17 @@ const getBookCollaborativeRecommendations = async (req, res) => {
     const rawLimit = Number(req.query.limit);
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 20) : 12;
 
+    const cacheKey = `collab:${bookId}:${limit}`;
+    const cachedTop = getCachedRec(cacheKey);
+    if (cachedTop) {
+      const booksWithBookmarks = await attachUserBookFlags(cachedTop, req.user?.id);
+      return res.json({
+        algorithm: "collaborative",
+        total: booksWithBookmarks.length,
+        books: booksWithBookmarks,
+      });
+    }
+
     const target = await Book.findById(bookId).select("_id").lean();
     if (!target) {
       return res.status(404).json({ message: "Book not found" });
@@ -489,7 +486,7 @@ const getBookCollaborativeRecommendations = async (req, res) => {
       maxCandidates: 500,
     });
 
-    const baseProjection = "title author description category coverImage isPaid price averageRating totalRatings reads";
+    const baseProjection = "title author description category coverImage averageRating totalRatings reads";
 
     let orderedBooks = [];
     if (scores.length > 0) {
@@ -518,6 +515,8 @@ const getBookCollaborativeRecommendations = async (req, res) => {
       });
     }
 
+    setCachedRec(cacheKey, orderedBooks);
+
     const booksWithBookmarks = await attachUserBookFlags(orderedBooks, req.user?.id);
 
     return res.json({
@@ -541,3 +540,4 @@ module.exports = {
   getBookRecommendations,
   getBookCollaborativeRecommendations,
 };
+

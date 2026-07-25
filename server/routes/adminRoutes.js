@@ -14,11 +14,7 @@ const {
   deleteAllBooks,
   getBookDeletionHistory,
   getAllReviews,
-  deleteReview,
-  getPaymentOrders,
-  getPurchases,
-  grantPurchaseAccess,
-  updatePurchaseAccess,
+  deleteReview
 } = require("../controllers/adminControllers");
 const {
   createAdminNotification,
@@ -49,10 +45,5 @@ router.delete("/books/:id", adminAuth, deleteBook);
 router.get("/reviews", adminAuth, getAllReviews);
 router.delete("/reviews/:id", adminAuth, deleteReview);
 
-// Payments (dummy)
-router.get("/payments/orders", adminAuth, getPaymentOrders);
-router.get("/payments/purchases", adminAuth, getPurchases);
-router.post("/payments/purchases/grant", adminAuth, grantPurchaseAccess);
-router.put("/payments/purchases/:id", adminAuth, updatePurchaseAccess);
 
 module.exports = router;

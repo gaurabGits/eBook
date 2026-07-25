@@ -7,10 +7,6 @@ import {
 } from "react-icons/hi2";
 import CoverImage from "../CoverImage";
 
-function getPriceLabel(book) {
-  if (!book?.isPaid) return "Free";
-  return Number.isFinite(Number(book?.price)) ? `Rs. ${book.price}` : "Paid";
-}
 
 function getReasonLabel(book) {
   const reasons = Array.isArray(book?.recommendation?.reasons)
@@ -100,15 +96,6 @@ function SimilarBookCard({ book, onClick, compact = false }) {
                 {matchPercent}% match
               </span>
             )}
-            <span
-              className={`rounded-full ${
-                book?.isPaid
-                  ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300"
-                  : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-              } ${compact ? "px-2 py-0.5" : "px-2.5 py-1"}`}
-            >
-              {getPriceLabel(book)}
-            </span>
             {hasRating && (
               <span className={`inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300 ${compact ? "px-2 py-0.5" : "px-2.5 py-1"}`}>
                 <HiStar className="text-xs" />

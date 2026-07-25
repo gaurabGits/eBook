@@ -1,58 +1,165 @@
 import {
+  HiOutlineSparkles,
   HiOutlineBookOpen,
-  HiOutlineMagnifyingGlass,
-} from "react-icons/hi2";
-import { MdOutlinePaid } from "react-icons/md";
+  HiOutlineStar,
+  HiOutlineChartBar,
+  HiOutlineShieldCheck,
+  HiOutlineChartPie,
+  HiOutlinePencil,
+  HiOutlineOfficeBuilding,
+  HiOutlineUserGroup,
+  HiOutlineMail,
+  HiOutlineDocument,
+  HiOutlineClipboard,
+  HiOutlineFolder,
+  HiOutlineBookmark,
+  HiOutlinePrinter,
+} from "react-icons/hi";
 
 const FEATURES = [
   {
-    icon: <HiOutlineBookOpen />,
-    title: "Book Recommendations",
+    icon: <HiOutlineSparkles />,
+    title: "Smart Recommendations",
     desc: "Based on what you've read and loved, we'll suggest books we think you'll enjoy next.",
   },
   {
-    icon: <MdOutlinePaid />,
-    title: "Purchase Books",
-    desc: "We implement a dummy purchase system for demonstration purposes. Simulating a real-world experience without actual transactions.",
+    icon: <HiOutlineBookOpen />,
+    title: "Personal Bookshelf",
+    desc: "Organize what you're reading, what's finished, and what's next — all in one shelf.",
+  },
+  {
+    icon: <HiOutlineStar />,
+    title: "Reviews & Ratings",
+    desc: "Rate books and write reviews to help other readers find their next favorite.",
+  },
+  {
+    icon: <HiOutlineChartBar />,
+    title: "Reading Progress",
+    desc: "Track pages read and watch your reading habits take shape over time.",
+  },
+  {
+    icon: <HiOutlineShieldCheck />,
+    title: "Secure Profiles",
+    desc: "Your account and data stay protected with modern, encrypted authentication.",
+  },
+  {
+    icon: <HiOutlineChartPie />,
+    title: "Admin Dashboard",
+    desc: "A dedicated space to manage books, users, and activity across the platform.",
   },
 ];
 
+// Expanded floating stationery icons – more variety, better spread
+const FLOATING_ICONS = [
+  { Icon: HiOutlinePencil, size: 32, top: "-50%", left: "50%", delay: 0 },
+  { Icon: HiOutlineBookOpen, size: 38, top: "-25%", right: "25%", delay: 2 },
+  { Icon: HiOutlineOfficeBuilding, size: 32, bottom: "-5%", left: "1%", delay: 4 },
+  { Icon: HiOutlineUserGroup, size: 34, bottom: "18%", right: "1%", delay: 1 },
+  { Icon: HiOutlineMail, size: 38, top: "-25%", left: "25%", delay: 3 },
+  { Icon: HiOutlineSparkles, size: 30, top: "30%", left: "10%", delay: 11 },
+  { Icon: HiOutlineDocument, size: 36, top: "-30%", left: "3%", delay: 6 },
+  { Icon: HiOutlineClipboard, size: 32, top: "-50%", right: "3%", delay: 7 },
+  { Icon: HiOutlineFolder, size: 35, bottom: "-30%", left: "20%", delay: 8 },
+  { Icon: HiOutlineBookmark, size: 28, bottom: "1%", right: "15%", delay: 9 },
+  { Icon: HiOutlinePrinter, size: 34, top: "110%", left: "70%", delay: 10 },
+  { Icon: HiOutlineSparkles, size: 30, top: "-3%", right: "10%", delay: 11 },
+];
+
+
 export default function FeaturesSection() {
   return (
-    <section className="bg-gray-50 dark:bg-gray-950 section-pad">
-      <div className="page-container">
-        <div className="flex w-full flex-col gap-8 sm:gap-10 lg:gap-12">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-400">
-              What's inside
+    <>
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-14px) rotate(2deg); }
+        }
+        .float-icon {
+          animation: float 8s ease-in-out infinite;
+          will-change: transform;
+        }
+      `}</style>
+
+      <section
+        className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-indigo-50/30 to-white px-4 py-16 dark:from-gray-950 dark:via-indigo-950/10 dark:to-gray-950 sm:py-20 lg:py-28"
+        aria-labelledby="features-heading"
+      >
+        {/* ——— Floating Background Icons ——— */}
+      
+
+        {/* ——— Header ——— */}
+        <div className="relative mx-auto max-w-6xl">
+          <div className="relative mb-12 text-center sm:mb-16 lg:mb-20">
+            <span className="inline-block rounded-full bg-indigo-100 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+              ✦ What's inside
             </span>
-            <h2 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl lg:text-4xl">
-              Major features of Akshar Shelf
+
+            <h2
+              id="features-heading"
+              className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl"
+            >
+              Major features of{" "}
+              <span className="relative inline-block">
+                Akshar Shelf
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-1 left-0 right-0 h-1.5 w-full rounded-full bg-gradient-to-r from-indigo-400 to-amber-400/80 dark:from-indigo-500 dark:to-amber-500/60"
+                />
+              </span>
             </h2>
+
+            <p className="mx-auto mt-4 max-w-xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
+              Everything you need to build your perfect reading world — clean,
+              simple, and thoughtfully crafted.
+            </p>
+
+            {FLOATING_ICONS.map(({ Icon, size, delay, ...style }, i) => (
+              <Icon
+                key={i}
+                size={size}
+                className="absolute text-indigo-300 opacity-80 animate-float"
+                style={{
+                  position: "absolute",
+                  ...style,
+                  animationDelay: `${delay}s`,
+                }}
+              />
+            ))}
           </div>
 
-          <div className="grid w-full cursor-default grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4 sm:gap-5 lg:gap-6">
-            {FEATURES.map((f, i) => (
+          {/* ——— Feature Cards ——— */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+            {FEATURES.map((feature, index) => (
               <div
-                key={i}
-                className="group flex h-full flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-800/50 sm:gap-4 sm:p-7"
+                key={index}
+                className="group relative flex flex-col rounded-2xl border border-indigo-100/60 bg-white/80 p-6 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-500/10 dark:border-gray-800 dark:bg-gray-900/80 dark:hover:border-indigo-700/40 dark:hover:shadow-indigo-500/5 sm:p-7"
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-xl text-indigo-600 transition-transform duration-200 group-hover:scale-105 dark:bg-indigo-950/50 dark:text-indigo-400">
-                    {f.icon}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-amber-300/0 transition-all duration-300 group-hover:bg-amber-300/60 dark:group-hover:bg-amber-500/30"
+                />
+
+                <div className="relative flex items-start gap-4">
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xl text-indigo-600 transition-all duration-300 group-hover:scale-110 group-hover:bg-indigo-100 group-hover:text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 dark:group-hover:bg-indigo-900/50 dark:group-hover:text-indigo-300">
+                    {feature.icon}
                   </div>
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                    {f.title}
-                  </h3>
+
+                  <div className="flex-1 pt-0.5">
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                      {feature.title}
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                      {feature.desc}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                  {f.desc}
-                </p>
+
+                <div className="absolute inset-0 rounded-2xl ring-2 ring-transparent ring-offset-2 transition-all duration-300 group-focus-visible:ring-indigo-400 dark:group-focus-visible:ring-indigo-500" />
               </div>
             ))}
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Document, Page, pdfjs } from "react-pdf";
+import { Document, Page } from "react-pdf";
 import {
   FiArrowLeft, FiChevronLeft, FiChevronRight, FiColumns,
   FiFileText, FiGrid, FiRotateCcw, FiMinus, FiPlus,
@@ -8,13 +8,9 @@ import {
   FiMaximize2, FiTrash2,
 } from "react-icons/fi";
 import { RiFocusMode } from "react-icons/ri";
+import API from "../services/api";
+import { API_BASE_URL } from "../services/apiBase";
 import { fetchBookDetail, persistReadingProgress } from "../services/bookService";
-import APIClient from "../services/api.jsx";
-import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-
-pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-
-const API_BASE     = String(APIClient.defaults.baseURL || "").replace(/\/$/, "");
 const MIN_SCALE    = 0.5;
 const MAX_SCALE    = 4.0;
 const THUMB_W      = 108;
@@ -293,7 +289,7 @@ export default function ReaderPage() {
 
     if (useKeepalive && typeof window !== "undefined" && typeof window.fetch === "function") {
       try {
-        window.fetch(`${API_BASE}/bookshelf/progress`, {
+        window.fetch(`${API_BASE_URL}/bookshelf/progress`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -378,7 +374,6 @@ export default function ReaderPage() {
 
         const nextTitle = data?.book?.title?.trim() || data?.title?.trim() || "Book Reader";
         const canRead = Boolean(data?.access?.canRead);
-        const isPaid = Boolean(data?.book?.isPaid);
         const nextLastReadPage = Math.max(1, Math.floor(Number(data?.book?.lastReadPage) || 1));
 
         setBookTitle(nextTitle);
@@ -390,15 +385,6 @@ export default function ReaderPage() {
             navigate("/auth/login", { replace: true, state: { from: `/read/${id}` } });
             return;
           }
-
-          if (isPaid) {
-            navigate(`/purchase/${id}`, {
-              replace: true,
-              state: { bookTitle: nextTitle },
-            });
-            return;
-          }
-
           setBookError("You do not have access to read this book.");
         }
       })
@@ -455,7 +441,7 @@ export default function ReaderPage() {
     return () => ro.disconnect();
   }, []);
 
-  const file    = useMemo(() => ({ url: `${API_BASE}/books/${id}/read`, httpHeaders: token ? { Authorization: `Bearer ${token}` } : undefined }), [id, token]);
+  const file    = useMemo(() => ({ url: `${API_BASE_URL}/books/${id}/read`, httpHeaders: token ? { Authorization: `Bearer ${token}` } : undefined }), [id, token]);
   const options = useMemo(() => ({ cMapUrl: "https://unpkg.com/pdfjs-dist/cmaps/", cMapPacked: true, standardFontDataUrl: "https://unpkg.com/pdfjs-dist/standard_fonts/" }), []);
 
   const onLoadSuccess = useCallback((pdf) => {
@@ -762,8 +748,8 @@ export default function ReaderPage() {
     setBookmarks(updated); localStorage.setItem(bmsKey, JSON.stringify(updated));
     if (!token) return;
     try {
-      if (!exists) await APIClient.post("/bookshelf", { bookId: id, status: "reading" });
-      else if (updated.length === 0) await APIClient.delete(`/bookshelf/${id}`);
+      if (!exists) await API.post("/bookshelf", { bookId: id, status: "reading" });
+      else if (updated.length === 0) await API.delete(`/bookshelf/${id}`);
     } catch (err) { console.error(err); }
   }, [bookmarks, bmsKey, currentPage, id, token]);
 

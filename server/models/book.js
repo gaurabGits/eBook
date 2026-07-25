@@ -43,14 +43,6 @@ const bookSchema = new mongoose.Schema(
     coverImage: {
       type: String,
     },
-    isPaid: {
-      type: Boolean,
-      default: false,
-    },
-    price: {
-      type: Number,
-      default: 0,
-    },
     averageRating: {
       type: Number,
       default: 0,
@@ -74,6 +66,7 @@ const bookSchema = new mongoose.Schema(
 bookSchema.index({ createdAt: -1 });
 bookSchema.index({ reads: -1, createdAt: -1 });
 bookSchema.index({ category: 1, createdAt: -1 });
-bookSchema.index({ isPaid: 1, createdAt: -1 });
+bookSchema.index({ title: "text", author: "text" });
 
 module.exports = mongoose.model('Book', bookSchema);
+

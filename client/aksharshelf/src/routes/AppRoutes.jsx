@@ -1,20 +1,21 @@
-import Books from "../pages/books.jsx";
-import BookDetailPage from "../pages/BookDetailPage.jsx";
-import ProtectedRoute from "../components/ProtectedRoutes.jsx";
-import ReaderPage from "../pages/ReaderPage.jsx";
+import { lazy } from "react";
 import LandingPage from "../pages/LandingPage.jsx";
-import Login from "../pages/Auth/Login.jsx";
-import Register from "../pages/Auth/Signup.jsx"
-import MyLibrary from "../pages/MyLibrary.jsx";
-import ProfilePage from "../pages/ProfilePage.jsx";
-import FreeBooksSection from "../components/landing/FreeBooksSection.jsx";
-import AboutPage from "../pages/AboutPage.jsx";
-import PurchasePage from "../pages/PurchasePage.jsx";
+import ProtectedRoute from "../components/ProtectedRoutes.jsx";
+import RecommendedForYou from "../components/landing/RecommendedForYou.jsx";
+
+const Books = lazy(() => import("../pages/books.jsx"));
+const BookDetailPage = lazy(() => import("../pages/BookDetailPage.jsx"));
+const ReaderPage = lazy(() => import("../pages/ReaderPage.jsx"));
+const Login = lazy(() => import("../pages/Auth/Login.jsx"));
+const Register = lazy(() => import("../pages/Auth/Signup.jsx"));
+const MyLibrary = lazy(() => import("../pages/MyLibrary.jsx"));
+const ProfilePage = lazy(() => import("../pages/ProfilePage.jsx"));
+const AboutPage = lazy(() => import("../pages/AboutPage.jsx"));
 
 export const routes = [
   {
     path: "/",
-    element: <LandingPage />
+    element: <LandingPage />,
   },
   {
     path: "/books",
@@ -22,7 +23,7 @@ export const routes = [
   },
   {
     path: "/books/free-books",
-    element: <FreeBooksSection />,
+    element: <RecommendedForYou />,
   },
   {
     path: "/books/:id",
@@ -58,20 +59,10 @@ export const routes = [
   },
   {
     path: "/book/:id",
-    element: (
-      <BookDetailPage />
-    ),
+    element: <BookDetailPage />,
   },
   {
     path: "/read/:id",
     element: <ReaderPage />,
-  },
-  {
-    path: "/purchase/:id",
-    element: (
-      <ProtectedRoute>
-        <PurchasePage />
-      </ProtectedRoute>
-    ),
   },
 ];
