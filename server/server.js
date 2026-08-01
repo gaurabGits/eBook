@@ -10,6 +10,8 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const uploadsGuard = require("./middleware/uploadsGuard");
 const path = require("path"); 
 
+const openLibraryRoutes = require("./routes/openLibrary");
+
 require("dotenv").config({ path: path.join(__dirname, ".env") }); 
 
 const app = express();
@@ -24,12 +26,12 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 //Admin routes
 app.use("/api/admin", adminRoutes);
-
 app.use("/api/auth", authRoutes); //Keeps related routes grouped together (/api/auth/register)
 app.use("/api/books", bookRoutes);
 app.use("/api/bookshelf", bookshelfRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/uploads", uploadsGuard, express.static(path.join(__dirname, "uploads"), { maxAge: "7d", etag: true }));
+app.use("/api/openlibrary", openLibraryRoutes);
 
 
 
