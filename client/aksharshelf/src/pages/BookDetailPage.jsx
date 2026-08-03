@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   HiArrowLeft,
@@ -24,13 +24,14 @@ import {
   fetchBookCollaborativeRecommendations,
   fetchBookDetail,
 } from "../services/bookService";
+import { fetchOpenLibraryBookDetail } from "../services/openLibraryApi";
 import { useNotification } from "../context/Notification";
 import API from "../services/api";
 import CoverImage from "../components/CoverImage";
 import CollaborativeFilteringBottom from "../components/recommendations/CollaborativeFilteringBottom";
 import { getJwtPayload, isJwtExpired } from "../utils/jwt";
 
-/* ─── Constants ─────────────────────────────────────────────────── */
+/* â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const SHELF_OPTIONS = [
   {
@@ -64,7 +65,7 @@ const AVATAR_COLORS = [
   "bg-emerald-500", "bg-amber-500", "bg-rose-500",
 ];
 
-/* ─── Helpers ───────────────────────────────────────────────────── */
+/* â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function getCurrentUser() {
   const token = localStorage.getItem("token");
@@ -100,7 +101,7 @@ function formatRelativeTime(value) {
   return `${Math.floor(d / 365)}y ago`;
 }
 
-/* ─── Shared UI ─────────────────────────────────────────────────── */
+/* â”€â”€â”€ Shared UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function StarRating({ value = 0, onChange, readonly = false, size = "text-base" }) {
   const [hover, setHover] = useState(0);
@@ -144,7 +145,7 @@ function Avatar({ name, size = "w-8 h-8 text-xs" }) {
   );
 }
 
-/* ─── Skeleton ──────────────────────────────────────────────────── */
+/* â”€â”€â”€ Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function Skeleton() {
   return (
@@ -177,7 +178,7 @@ function Skeleton() {
   );
 }
 
-/* ─── Modals ────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function Overlay({ onClose, children }) {
   useEffect(() => {
@@ -267,7 +268,7 @@ function ReviewsModal({
 
   return (
     <Overlay onClose={onClose}>
-      <ModalHeader title={`Reviews · ${reviews.length}`} onClose={onClose} />
+      <ModalHeader title={`Reviews Â· ${reviews.length}`} onClose={onClose} />
 
       {totalReviews > 0 && (
         <div className="px-6 py-5 border-b border-stone-200 dark:border-stone-700 shrink-0">
@@ -331,7 +332,7 @@ function ReviewsModal({
   );
 }
 
-/* ─── Shelf Dropdown ────────────────────────────────────────────── */
+/* â”€â”€â”€ Shelf Dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function ShelfDropdown({ current, onSelect, onClose }) {
   return (
@@ -356,7 +357,7 @@ function ShelfDropdown({ current, onSelect, onClose }) {
           </span>
           <span className="flex-1 text-left font-medium">{opt.label}</span>
           {current === opt.key && (
-            <span className="text-xs text-stone-400">✓</span>
+            <span className="text-xs text-stone-400">âœ“</span>
           )}
         </button>
       ))}
@@ -365,7 +366,7 @@ function ShelfDropdown({ current, onSelect, onClose }) {
           onClick={() => { onSelect(null); onClose(); }}
           className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-t border-stone-200 dark:border-stone-700 transition-colors"
         >
-          <span className="text-base">✕</span>
+          <span className="text-base">âœ•</span>
           Remove from shelf
         </button>
       )}
@@ -373,7 +374,7 @@ function ShelfDropdown({ current, onSelect, onClose }) {
   );
 }
 
-/* ─── Review Row ────────────────────────────────────────────────── */
+/* â”€â”€â”€ Review Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function ReviewRow({
   review,
@@ -405,7 +406,7 @@ function ReviewRow({
             </div>
             <span className="text-xs text-stone-400 mt-0.5 block">
               {formatRelativeTime(timeValue)}
-              {isEdited && " · edited"}
+              {isEdited && " Â· edited"}
             </span>
           </div>
           {isMine && (onEdit || onDelete) && (
@@ -479,7 +480,7 @@ function ReviewRow({
   );
 }
 
-/* ─── Section Divider ───────────────────────────────────────────── */
+/* â”€â”€â”€ Section Divider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function SectionTitle({ children, icon }) {
   return (
     <div className="flex items-center gap-3 mb-6">
@@ -492,10 +493,12 @@ function SectionTitle({ children, icon }) {
   );
 }
 
-/* ─── Main Page ─────────────────────────────────────────────────── */
+/* â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export default function BookDetailPage() {
-  const { id } = useParams();
+  const { id, openLibraryId } = useParams();
+  const bookId = openLibraryId || id;
+  const isOpenLibraryBook = Boolean(openLibraryId);
   const navigate = useNavigate();
   const notify = useNotification();
 
@@ -526,7 +529,7 @@ export default function BookDetailPage() {
   const dropdownRef = useRef(null);
   const reviewEditorRef = useRef(null);
 
-  /* ── Data loading ── */
+  /* â”€â”€ Data loading â”€â”€ */
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -541,7 +544,11 @@ export default function BookDetailPage() {
     setCollabRecommendations([]);
     setCollabRecommendationsLoading(true);
 
-    fetchBookDetail(id)
+    const detailRequest = isOpenLibraryBook
+      ? fetchOpenLibraryBookDetail(bookId)
+      : fetchBookDetail(bookId);
+
+    detailRequest
       .then((res) => {
         if (!active) return;
         const d = res.data?.book || res.data;
@@ -557,7 +564,14 @@ export default function BookDetailPage() {
         if (active) setLoading(false);
       });
 
-    API.get(`/books/${id}/reviews`)
+    if (isOpenLibraryBook) {
+      setCollabRecommendationsLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    API.get(`/books/${bookId}/reviews`)
       .then((res) => {
         if (!active) return;
         const d = res.data;
@@ -590,7 +604,7 @@ export default function BookDetailPage() {
       .catch(() => {});
 
     // Only fetch collaborative recommendations
-    fetchBookCollaborativeRecommendations(id, { limit: 12 })
+    fetchBookCollaborativeRecommendations(bookId, { limit: 12 })
       .then((res) => {
         if (!active) return;
         const d = res.data;
@@ -604,9 +618,9 @@ export default function BookDetailPage() {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [bookId, isOpenLibraryBook]);
 
-  /* ── Click-outside for dropdowns ── */
+  /* â”€â”€ Click-outside for dropdowns â”€â”€ */
   useEffect(() => {
     const fn = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target))
@@ -644,7 +658,7 @@ export default function BookDetailPage() {
     };
   }, [openReviewMenuId, showReviewsModal]);
 
-  /* ── Handlers ── */
+  /* â”€â”€ Handlers â”€â”€ */
   const handleShelfSelect = async (status) => {
     if (!localStorage.getItem("token")) {
       notify.info("Login Required", "Please login to use your bookshelf.");
@@ -653,14 +667,14 @@ export default function BookDetailPage() {
     }
     try {
       if (status) {
-        await API.post("/bookshelf", { bookId: id, status });
+        await API.post("/bookshelf", { bookId, status });
         setShelfStatus(status);
         notify.success(
           "Shelf Updated",
           `Added to "${SHELF_OPTIONS.find((o) => o.key === status)?.label}"`
         );
       } else {
-        await API.delete(`/bookshelf/${id}`);
+        await API.delete(`/bookshelf/${bookId}`);
         setShelfStatus(null);
         notify.info("Removed", "Book removed from your shelf.");
       }
@@ -673,6 +687,10 @@ export default function BookDetailPage() {
     if (!localStorage.getItem("token")) {
       notify.info("Login Required", "Please login to read this book.");
       navigate("/auth/login");
+      return;
+    }
+    if (isOpenLibraryBook) {
+      window.open(book.openLibraryUrl || `https://openlibrary.org/works/${book.openLibraryId}`, "_blank", "noopener,noreferrer");
       return;
     }
     navigate(`/read/${book._id}`, {
@@ -689,7 +707,7 @@ export default function BookDetailPage() {
     }
     setPosting(true);
     try {
-      const { data } = await API.post(`/books/${id}/reviews`, {
+      const { data } = await API.post(`/books/${bookId}/reviews`, {
         comment: comment.trim(),
         rating: myRating > 0 ? myRating : undefined,
       });
@@ -766,7 +784,7 @@ export default function BookDetailPage() {
     setShowReviewsModal(false);
     setDeletingReview(true);
     try {
-      const { data } = await API.delete(`/books/${id}/reviews`);
+      const { data } = await API.delete(`/books/${bookId}/reviews`);
       setReviews((prev) => prev.filter((r) => String(r?._id) !== String(reviewId)));
       setMyReviewId(null);
       setMyRating(0);
@@ -823,7 +841,7 @@ export default function BookDetailPage() {
     }
   };
 
-  /* ── Derived values ── */
+  /* â”€â”€ Derived values â”€â”€ */
   if (error)
     return (
       <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center">
@@ -863,13 +881,13 @@ export default function BookDetailPage() {
   const hasMoreReviews = sortedReviews.length > previewReviews.length;
 
   const otherInfo = [
-    { label: "Pages", value: book.pageCount ? `${book.pageCount}` : "—", icon: <HiOutlineBookOpen /> },
-    { label: "Published", value: book.publicationDate?.trim() || "—", icon: <HiOutlineCalendar /> },
-    { label: "ISBN", value: book.isbn?.trim() || "—", icon: <HiOutlineBookmarkAlt /> },
-    { label: "Language", value: book.language?.trim() || "—", icon: <HiOutlineGlobe /> },
+    { label: "Pages", value: book.pageCount ? `${book.pageCount}` : "â€”", icon: <HiOutlineBookOpen /> },
+    { label: "Published", value: book.publicationDate?.trim() || "â€”", icon: <HiOutlineCalendar /> },
+    { label: "ISBN", value: book.isbn?.trim() || "â€”", icon: <HiOutlineBookmarkAlt /> },
+    { label: "Language", value: book.language?.trim() || "â€”", icon: <HiOutlineGlobe /> },
   ];
 
-  /* ── Render ── */
+  /* â”€â”€ Render â”€â”€ */
   return (
     <>
       {showDescModal && (
@@ -893,7 +911,7 @@ export default function BookDetailPage() {
 
       <div className="min-h-screen bg-stone-50 dark:bg-stone-950 font-sans">
 
-        {/* ── Top Navigation ────────────────────────────────────── */}
+        {/* â”€â”€ Top Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="border-b border-stone-200 dark:border-stone-800 sticky top-0 bg-white/90 dark:bg-stone-950/90 backdrop-blur-md z-40">
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
             <button
@@ -909,7 +927,7 @@ export default function BookDetailPage() {
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-[280px_minmax(0,1fr)]">
 
-            {/* ── Left Column: Cover ────────────────────────────── */}
+            {/* â”€â”€ Left Column: Cover â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="space-y-4">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-stone-200/60 dark:shadow-stone-900/60">
                 <div className="aspect-[2/3] w-full bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
@@ -930,64 +948,67 @@ export default function BookDetailPage() {
                   className="w-full flex items-center justify-center gap-2.5 rounded-2xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-all duration-200"
                 >
                   <HiOutlineBookOpen className="text-lg" />
-                  Read Now
+                  {isOpenLibraryBook ? "View on Open Library" : "Read Now"}
                 </button>
 
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => setShowShelfMenu((v) => !v)}
-                    className={`w-full flex items-center justify-center gap-2.5 py-3.5 px-4 text-sm font-medium rounded-2xl border-2 transition-all duration-200 ${
-                      shelfStatus
-                        ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400"
-                        : "border-stone-200 bg-white text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400"
-                    }`}
-                  >
-                    {shelfStatus ? (
-                      <HiBookmark className="text-indigo-600 dark:text-indigo-400" />
-                    ) : (
-                      <HiOutlineBookmark />
-                    )}
-                    {currentShelf ? currentShelf.label : "Want to Read"}
-                  </button>
-                  {showShelfMenu && (
-                    <ShelfDropdown
-                      current={shelfStatus}
-                      onSelect={handleShelfSelect}
-                      onClose={() => setShowShelfMenu(false)}
-                    />
-                  )}
-                </div>
+                {!isOpenLibraryBook && (
+                  <>
+                    <div className="relative" ref={dropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowShelfMenu((v) => !v)}
+                        className={`w-full flex items-center justify-center gap-2.5 py-3.5 px-4 text-sm font-medium rounded-2xl border-2 transition-all duration-200 ${
+                          shelfStatus
+                            ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400"
+                            : "border-stone-200 bg-white text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400"
+                        }`}
+                      >
+                        {shelfStatus ? (
+                          <HiBookmark className="text-indigo-600 dark:text-indigo-400" />
+                        ) : (
+                          <HiOutlineBookmark />
+                        )}
+                        {currentShelf ? currentShelf.label : "Want to Read"}
+                      </button>
+                      {showShelfMenu && (
+                        <ShelfDropdown
+                          current={shelfStatus}
+                          onSelect={handleShelfSelect}
+                          onClose={() => setShowShelfMenu(false)}
+                        />
+                      )}
+                    </div>
 
-                <div className="flex gap-2.5">
-                  <button
-                    type="button"
-                    onClick={handleLike}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
-                  >
-                    {isLiked ? (
-                      <HiHeart className="text-rose-500 fill-rose-500" />
-                    ) : (
-                      <HiOutlineHeart />
-                    )}
-                    Like
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleShare}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
-                  >
-                    <HiOutlineShare />
-                    Share
-                  </button>
-                </div>
+                    <div className="flex gap-2.5">
+                      <button
+                        type="button"
+                        onClick={handleLike}
+                        className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
+                      >
+                        {isLiked ? (
+                          <HiHeart className="text-rose-500 fill-rose-500" />
+                        ) : (
+                          <HiOutlineHeart />
+                        )}
+                        Like
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleShare}
+                        className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
+                      >
+                        <HiOutlineShare />
+                        Share
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-
-            {/* ── Right Column: Content ─────────────────────────── */}
+            {/* â”€â”€ Right Column: Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="min-w-0 space-y-10">
 
-              {/* ── Book Info ────────────────────────────────────── */}
+              {/* â”€â”€ Book Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <div className="space-y-4">
                 {/* Genre tags */}
                 <div className="flex flex-wrap items-center gap-2">
@@ -1050,7 +1071,7 @@ export default function BookDetailPage() {
                 <div className="pt-4 mt-4 border-t border-stone-200 dark:border-stone-800">
                   <p className="text-base leading-relaxed text-stone-600 dark:text-stone-400">
                     {isLongDesc
-                      ? book.description.slice(0, 280).trimEnd() + "…"
+                      ? book.description.slice(0, 280).trimEnd() + "â€¦"
                       : book.description || "No description available."}
                   </p>
                   {isLongDesc && (
@@ -1059,13 +1080,13 @@ export default function BookDetailPage() {
                       onClick={() => setShowDescModal(true)}
                       className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
                     >
-                      Read more →
+                      Read more â†’
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* ── Book Details ────────────────────────────────── */}
+              {/* â”€â”€ Book Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <section>
                 <SectionTitle icon={<HiOutlineBookmarkAlt />}>Details</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden">
@@ -1088,7 +1109,7 @@ export default function BookDetailPage() {
                 </div>
               </section>
 
-              {/* ── Reviews ─────────────────────────────────────── */}
+              {/* â”€â”€ Reviews â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <section>
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
@@ -1104,7 +1125,7 @@ export default function BookDetailPage() {
                       onClick={() => setShowReviewsModal(true)}
                       className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
                     >
-                      See all →
+                      See all â†’
                     </button>
                   )}
                 </div>
@@ -1167,7 +1188,7 @@ export default function BookDetailPage() {
                       <textarea
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
-                        placeholder="Share your thoughts about this book…"
+                        placeholder="Share your thoughts about this bookâ€¦"
                         rows={3}
                         className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 dark:bg-stone-800 dark:border-stone-700 px-4 py-3 text-sm text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 dark:focus:ring-indigo-500/20 transition-all"
                       />
@@ -1181,7 +1202,7 @@ export default function BookDetailPage() {
                           disabled={!comment.trim() || posting || deletingReview}
                           className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-500/20"
                         >
-                          {posting ? "Saving…" : myReviewId ? "Update" : "Post"}
+                          {posting ? "Savingâ€¦" : myReviewId ? "Update" : "Post"}
                         </button>
                       </div>
                     </div>
@@ -1193,7 +1214,8 @@ export default function BookDetailPage() {
           </div>
         </div>
 
-        {/* ── Full‑width “You may also like” section ────────────── */}
+        {/* â”€â”€ Fullâ€‘width â€œYou may also likeâ€ section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {!isOpenLibraryBook && (
         <div className="w-full mt-16 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-stone-50 dark:bg-stone-900/50 py-12">
           <div className="max-w-7xl mx-auto">
             <SectionTitle icon={<HiOutlineUsers />}>Readers Also Enjoyed</SectionTitle>
@@ -1209,3 +1231,6 @@ export default function BookDetailPage() {
     </>
   );
 }
+
+
+

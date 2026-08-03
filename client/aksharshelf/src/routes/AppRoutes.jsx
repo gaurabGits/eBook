@@ -1,4 +1,4 @@
-import { lazy } from "react";
+﻿import { lazy } from "react";
 import LandingPage from "../pages/LandingPage.jsx";
 import ProtectedRoute from "../components/ProtectedRoutes.jsx";
 import RecommendedForYou from "../components/landing/RecommendedForYou.jsx";
@@ -24,6 +24,10 @@ export const routes = [
   {
     path: "/books/free-books",
     element: <RecommendedForYou />,
+  },
+  {
+    path: "/books/openlibrary/:openLibraryId",
+    element: <BookDetailPage />,
   },
   {
     path: "/books/:id",
@@ -66,3 +70,4 @@ export const routes = [
     element: <ReaderPage />,
   },
 ];
+

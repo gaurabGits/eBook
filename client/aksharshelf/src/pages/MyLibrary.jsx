@@ -454,7 +454,7 @@ export default function MyLibraryPage() {
           <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
           My Bookshelf
         </span>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+        <h1 className="font-serif text-4xl font-bold tracking-tight text-stone-900 dark:text-stone-50 sm:text-5xl">
           {greeting}, Reader
         </h1>
         <div className="mt-2 max-w-xl text-gray-600 dark:text-gray-400">

@@ -220,7 +220,7 @@ export default function AboutPage() {
                 <div className="select-none">
                   <div className="h-35 sm:h-44 w-full relative">
                   <img
-                    src="src/assets/images/linkedin pics/banner.jfif"
+                    src="src/assets/images/linkedin pics/banner.jpg"
                     alt="Profile Banner"
                     className="w-full h-full object-cover"
                   />
@@ -234,7 +234,7 @@ export default function AboutPage() {
                     <div className="absolute -top-20 left-6">
                       <div className="h-32 w-32 rounded-full border-4 border-white dark:border-gray-900 shadow-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
                         <img
-                          src="src/assets/images/linkedin pics/pp.jfif"
+                          src="src/assets/images/linkedin pics/pp.jpg"
                           alt="Gaurab Bishwakarma"
                           className="w-full h-full select-none object-cover"
                         />

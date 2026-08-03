@@ -1,3 +1,4 @@
+// BookCard.jsx
 import { useNavigate } from "react-router-dom";
 import {
   HiOutlineBookOpen,
@@ -29,8 +30,7 @@ const BookCard = ({ book, onClick, onToggleBookmark, isBookmarked = false }) => 
   const isCompleted = book?.shelfStatus === "completed";
 
   const handlePrefetch = () => {
-    if (!book?._id) return;
-    // Prefetch JS chunk and API detail request on hover
+    if (!book?._id || book?.source === "openLibrary") return;
     import("../pages/BookDetailPage.jsx").catch(() => {});
     import("../services/bookService")
       .then(({ fetchBookDetail }) => {
@@ -44,7 +44,6 @@ const BookCard = ({ book, onClick, onToggleBookmark, isBookmarked = false }) => 
       onClick(book);
       return;
     }
-
     navigate(`/books/${book._id}`);
   };
 
@@ -69,6 +68,13 @@ const BookCard = ({ book, onClick, onToggleBookmark, isBookmarked = false }) => 
             <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700 shadow-sm dark:border-emerald-900/70 dark:bg-emerald-950/90 dark:text-emerald-300">
               <HiOutlineCheckCircle className="text-xs" />
               Completed
+            </span>
+          )}
+
+          {/* 👇 NEW: Free badge for Open Library books */}
+          {book?.source === "openLibrary" && (
+            <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-green-700 shadow-sm dark:border-green-900/70 dark:bg-green-950/90 dark:text-green-300">
+              Free
             </span>
           )}
 
@@ -101,7 +107,8 @@ const BookCard = ({ book, onClick, onToggleBookmark, isBookmarked = false }) => 
             {book.title}
           </h3>
           <p className="mt-1 line-clamp-1 min-h-[1.35rem] font-sans italic text-[14px] font-semibold leading-[1.35] text-stone-500 dark:text-stone-400">
-            by <span className="font-medium italic text-stone-900 dark:text-stone-100">
+            by{" "}
+            <span className="font-medium italic text-stone-900 dark:text-stone-100">
               {book.author || "Unknown Author"}
             </span>
           </p>

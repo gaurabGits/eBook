@@ -1,3 +1,4 @@
+﻿// BooksPage.jsx (additions highlighted with "NEW" comments)
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
   HiOutlineMagnifyingGlass,
@@ -9,19 +10,31 @@ import {
   HiSparkles,
   HiClock,
 } from "react-icons/hi2";
-import { useNavigate, } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import BookCard, { BookCardSkeleton } from "../components/BookCard";
+import { searchOpenLibrary } from "../services/openLibraryApi";
 
-// ----------------------------------------------------------------------
-// Constants
-// ----------------------------------------------------------------------
-const SKELETON_COUNT = 8;         // for the main grid
-const ROW_DISPLAY_COUNT = 9;      // how many books to show in each row
+const SKELETON_COUNT = 8;
+const ROW_DISPLAY_COUNT = 9;
 const PAGE_SIZE = 12;
 
+// Popular categories to display as chips
+const FEATURED_CATEGORIES = [
+  "Fiction",
+  "Science",
+  "History",
+  "Fantasy",
+  "Romance",
+  "Biography",
+  "Mystery",
+  "Technology",
+  "Philosophy",
+  "Art",
+];
 
 const getTimeContext = () => {
+  // ... unchanged
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 12)
     return {
@@ -38,13 +51,13 @@ const getTimeContext = () => {
       accent: "text-amber-900 dark:text-amber-300",
     };
   if (hour >= 17 && hour < 21)
+    return {
+      greeting: "Good evening",
+      gradient:
+        "from-blue-100 via-purple-50 to-white dark:from-slate-900 dark:via-indigo-950 dark:to-stone-950",
+      accent: "text-blue-900 dark:text-indigo-300",
+    };
   return {
-    greeting: "Good evening",
-    gradient:
-      "from-blue-100 via-purple-50 to-white dark:from-slate-900 dark:via-indigo-950 dark:to-stone-950",
-    accent: "text-blue-900 dark:text-indigo-300",
-  };
-   return {
     greeting: "Good night",
     gradient:
       "from-blue-100 via-purple-50 to-white dark:from-slate-900 dark:via-indigo-950 dark:to-stone-950",
@@ -52,12 +65,10 @@ const getTimeContext = () => {
   };
 };
 
-// ----------------------------------------------------------------------
-// Horizontal scrollable row (Netflix‑style, hidden scrollbar)
-// ----------------------------------------------------------------------
+// Row component unchanged (see original)
 const Row = ({ title, icon: Icon, books, loading, onBookClick }) => {
+  // ... same as before ...
   const rowRef = useRef(null);
-
   const scroll = useCallback((direction) => {
     if (!rowRef.current) return;
     const scrollAmount = rowRef.current.clientWidth * 0.75;
@@ -102,7 +113,6 @@ const Row = ({ title, icon: Icon, books, loading, onBookClick }) => {
         </div>
       </div>
 
-      {/* Scrollable container – scrollbar hidden via CSS */}
       <div
         ref={rowRef}
         tabIndex={0}
@@ -127,7 +137,7 @@ const Row = ({ title, icon: Icon, books, loading, onBookClick }) => {
               >
                 <BookCard
                   book={book}
-                  onClick={() => onBookClick(book._id)}
+                  onClick={() => onBookClick(book)}
                 />
               </div>
             ))}
@@ -136,14 +146,17 @@ const Row = ({ title, icon: Icon, books, loading, onBookClick }) => {
   );
 };
 
-// ----------------------------------------------------------------------
-// BooksPage – the complete experience
-// ----------------------------------------------------------------------
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ BooksPage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function BooksPage() {
   const navigate = useNavigate();
 
-  // Main grid
+  // Main grid states (unchanged)
   const [books, setBooks] = useState([]);
+  const [remoteBooks, setRemoteBooks] = useState([]);
+  const [remotePage, setRemotePage] = useState(1);
+  const [remoteTotal, setRemoteTotal] = useState(0);
+  const [remoteTotalPages, setRemoteTotalPages] = useState(1);
+  const [openLibraryError, setOpenLibraryError] = useState("");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -157,12 +170,16 @@ export default function BooksPage() {
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState(""); // NEW: track active category
 
-  const { greeting, gradient} = getTimeContext();
+  const { greeting, gradient } = getTimeContext();
 
   // ---- Debounced search ----
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setRemotePage(1);
+    }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -175,16 +192,36 @@ export default function BooksPage() {
       try {
         const params = { page: 1, limit: PAGE_SIZE };
         if (debouncedSearch) params.search = debouncedSearch;
-        const { data } = await API.get("/books", { params });
+
+        const localRequest = API.get("/books", { params });
+        const remoteRequest = debouncedSearch
+          ? searchOpenLibrary(debouncedSearch, { page: remotePage, limit: PAGE_SIZE })
+          : Promise.resolve({ books: [], total: 0, totalPages: 1 });
+
+        const [localResponse, remoteResponse] = await Promise.all([localRequest, remoteRequest]);
         if (ignore) return;
-        const bookList = data.books ?? data ?? [];
+
+        const bookList = localResponse.data.books ?? localResponse.data ?? [];
         setBooks(bookList);
-        setTotal(Number(data.total) || bookList.length);
+        setTotal(Number(localResponse.data.total) || bookList.length);
+
+        const openLibraryBooks = (remoteResponse.books ?? []).map((book) => ({
+          ...book,
+          _id: book.id,
+        }));
+        setRemoteBooks(openLibraryBooks);
+        setRemoteTotal(Number(remoteResponse.total) || openLibraryBooks.length);
+        setRemoteTotalPages(Math.max(1, Number(remoteResponse.totalPages) || 1));
+        setOpenLibraryError("");
       } catch (err) {
         if (!ignore) {
           console.error(err);
-          setBooks([]);
-          setTotal(0);
+          setBooks((prev) => prev || []);
+          setRemoteBooks([]);
+          setRemoteTotal(0);
+          setRemoteTotalPages(1);
+          setOpenLibraryError(debouncedSearch ? "Open Library results are unavailable right now." : "");
+          setTotal((prev) => prev || 0);
         }
       } finally {
         if (!ignore) setLoading(false);
@@ -193,7 +230,7 @@ export default function BooksPage() {
     return () => {
       ignore = true;
     };
-  }, [debouncedSearch]);
+  }, [debouncedSearch, remotePage]);
 
   // ---- Recently Added ----
   useEffect(() => {
@@ -202,11 +239,7 @@ export default function BooksPage() {
       setRecentLoading(true);
       try {
         const { data } = await API.get("/books", {
-          params: {
-            sort: "createdAt",
-            order: "desc",
-            limit: ROW_DISPLAY_COUNT,
-          },
+          params: { sort: "createdAt", order: "desc", limit: ROW_DISPLAY_COUNT },
         });
         if (ignore) return;
         setRecentBooks(data.books ?? data ?? []);
@@ -216,9 +249,7 @@ export default function BooksPage() {
         if (!ignore) setRecentLoading(false);
       }
     })();
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, []);
 
   // ---- Best Books ----
@@ -228,11 +259,7 @@ export default function BooksPage() {
       setBestLoading(true);
       try {
         const { data } = await API.get("/books", {
-          params: {
-            sort: "rating",
-            order: "desc",
-            limit: ROW_DISPLAY_COUNT,
-          },
+          params: { sort: "rating", order: "desc", limit: ROW_DISPLAY_COUNT },
         });
         if (ignore) return;
         setBestBooks(data.books ?? data ?? []);
@@ -242,13 +269,12 @@ export default function BooksPage() {
         if (!ignore) setBestLoading(false);
       }
     })();
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, []);
 
   const isSearching = search.trim().length > 0;
-  const hasMore = books.length < total;
+  const displayedBooks = isSearching ? [...books, ...remoteBooks] : books;
+  const hasMore = !isSearching && books.length < total;
 
   const loadMoreBooks = async () => {
     if (loadingMore || !hasMore) return;
@@ -269,21 +295,40 @@ export default function BooksPage() {
     }
   };
 
-  const handleBookClick = (id) => navigate(`/books/${id}`);
+  const handleBookClick = (book) => {
+    if (book?.source === "openLibrary" && (book?.openLibraryId || book?.id)) {
+      navigate(`/books/openlibrary/${book.openLibraryId || book.id}`);
+      return;
+    }
+    if (book?._id) {
+      navigate(`/books/${book._id}`);
+    }
+  };
+
+  // NEW: handle category chip click
+  const handleCategoryClick = (category) => {
+    if (activeCategory === category) {
+      // deselect
+      setActiveCategory("");
+      setSearch("");
+    } else {
+      setActiveCategory(category);
+      setSearch(category);
+    }
+  };
 
   const gridClasses =
     "grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(175px,1fr))] md:gap-x-5 md:gap-y-8";
 
   return (
     <div className="min-h-screen bg-[#faf8f3] dark:bg-[#18160f] animate-fade-in">
-      {/* Hide scrollbar for horizontal book rows */}
       <style>{`
         .book-list::-webkit-scrollbar {
           display: none;
         }
       `}</style>
 
-      {/* ========== HERO ========== */}
+      {/* ========== HERO (unchanged) ========== */}
       {!isSearching && (
         <div
           className={`relative overflow-hidden bg-gradient-to-b ${gradient} px-4 pb-12 pt-16 sm:px-6 lg:px-8 transition-colors duration-1000`}
@@ -325,14 +370,23 @@ export default function BooksPage() {
             <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               type="text"
-              placeholder="Search by title or author…"
+              placeholder="Search by title, author, or categoryâ€¦"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                // Clear active category if user manually types
+                if (activeCategory && e.target.value !== activeCategory) {
+                  setActiveCategory("");
+                }
+              }}
               className="w-full rounded-full border border-stone-300 bg-white py-2.5 pl-10 pr-9 text-[13.5px] text-stone-800 placeholder-stone-400 shadow-sm transition focus:border-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-900/15 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:placeholder-stone-600 dark:focus:border-indigo-500"
             />
             {isSearching && (
               <button
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  setSearch("");
+                  setActiveCategory("");
+                }}
                 aria-label="Clear search"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
               >
@@ -341,11 +395,29 @@ export default function BooksPage() {
             )}
           </div>
         </div>
+
+        {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ CATEGORY CHIPS (NEW) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {FEATURED_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => handleCategoryClick(cat)}
+                className={`whitespace-nowrap rounded-full border px-4 py-1.5 text-xs font-semibold transition-all ${
+                  activeCategory === cat
+                    ? "bg-indigo-600 text-white border-indigo-600 dark:bg-indigo-500 dark:border-indigo-500"
+                    : "border-stone-300 text-stone-600 bg-white hover:border-indigo-300 hover:text-indigo-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-indigo-500"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ========== CONTENT ========== */}
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-16">
-        {/* Two horizontal rows – hidden when searching */}
         {!isSearching && (
           <>
             <Row
@@ -369,17 +441,21 @@ export default function BooksPage() {
         <section>
           <div className="mb-6 flex items-center gap-3">
             <h2 className="font-serif text-lg font-semibold text-stone-800 dark:text-stone-100">
-              {isSearching ? "Search Results" : "All Books"}
+              {isSearching
+                ? `Results for "${activeCategory || search}"`
+                : "All Books"}
             </h2>
             <div className="flex-1 border-t border-dashed border-stone-300 dark:border-stone-700" />
-            {!isSearching && !loading && (
+            {!loading && (
               <span className="text-xs text-stone-400 dark:text-stone-500">
-                {total.toLocaleString()} titles
+                {isSearching
+                  ? `${remoteTotal.toLocaleString()} Open Library results`
+                  : `${total.toLocaleString()} titles`}
               </span>
             )}
           </div>
 
-          {isSearching && (
+          {isSearching && !activeCategory && (
             <p className="mb-4 text-xs text-stone-400 dark:text-stone-500">
               Showing results for{" "}
               <span className="font-semibold text-stone-600 dark:text-stone-300">
@@ -387,20 +463,66 @@ export default function BooksPage() {
               </span>
             </p>
           )}
+          {activeCategory && (
+            <p className="mb-4 text-xs text-stone-400 dark:text-stone-500">
+              Browsing category:{" "}
+              <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                {activeCategory}
+              </span>
+              <button
+                onClick={() => { setSearch(""); setActiveCategory(""); }}
+                className="ml-2 underline text-indigo-600 hover:text-indigo-800"
+              >
+                clear
+              </button>
+            </p>
+          )}
+
+          {openLibraryError && (
+            <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+              {openLibraryError}
+            </div>
+          )}
 
           <div className={gridClasses}>
             {loading
               ? Array(SKELETON_COUNT)
                   .fill(0)
                   .map((_, i) => <BookCardSkeleton key={i} />)
-              : books.map((book) => (
+              : displayedBooks.map((book) => (
                   <BookCard
-                    key={book._id}
+                    key={book.source === "openLibrary" ? `openlibrary-${book.openLibraryId || book.id}` : book._id ?? book.id}
                     book={book}
-                    onClick={() => handleBookClick(book._id)}
+                    onClick={() => handleBookClick(book)}
                   />
                 ))}
           </div>
+
+          {!loading && isSearching && remoteTotalPages > 1 && (
+            <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                onClick={() => setRemotePage((current) => Math.max(1, current - 1))}
+                disabled={remotePage <= 1}
+                className="inline-flex items-center gap-2 rounded-full border border-stone-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+              >
+                <HiChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+              <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
+                Open Library page {remotePage.toLocaleString()} of {remoteTotalPages.toLocaleString()}
+              </span>
+              <button
+                type="button"
+                onClick={() => setRemotePage((current) => Math.min(remoteTotalPages, current + 1))}
+                disabled={remotePage >= remoteTotalPages}
+                className="inline-flex items-center gap-2 rounded-full border border-stone-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wider text-stone-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
+              >
+                Next
+                <HiChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
 
           {!loading && hasMore && (
             <div className="mt-10 flex justify-center">
@@ -414,8 +536,7 @@ export default function BooksPage() {
             </div>
           )}
 
-          {/* Empty state */}
-          {!loading && books.length === 0 && (
+          {!loading && displayedBooks.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-stone-300 dark:border-stone-700">
                 <HiOutlineBookOpen className="text-3xl text-stone-300 dark:text-stone-600" />
@@ -426,9 +547,9 @@ export default function BooksPage() {
               <p className="text-xs text-stone-400">
                 Try a different search or browse our shelves.
               </p>
-              {search && (
+              {(search || activeCategory) && (
                 <button
-                  onClick={() => setSearch("")}
+                  onClick={() => { setSearch(""); setActiveCategory(""); }}
                   className="mt-1 text-xs font-medium text-indigo-900 underline underline-offset-2 hover:text-indigo-700 dark:text-indigo-400"
                 >
                   Clear search
@@ -441,3 +562,5 @@ export default function BooksPage() {
     </div>
   );
 }
+
+
