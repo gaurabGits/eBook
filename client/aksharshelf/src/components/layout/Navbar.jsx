@@ -1,8 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { 
-  HiOutlineMoon, 
-  HiOutlineSun, 
+import {
+  HiOutlineMoon,
+  HiOutlineSun,
   HiOutlineBell,
   HiOutlineUser,
   HiOutlineCog,
@@ -30,7 +30,7 @@ function Navbar() {
   const [profileImage, setProfileImage] = useState(null);
   const [user, setUser] = useState(null);
   const [imageUploading, setImageUploading] = useState(false);
-  
+
   const location = useLocation();
   const { token } = useAuth();
   const notify = useNotification();
@@ -42,46 +42,34 @@ function Navbar() {
 
   // Load user data
   useEffect(() => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     const loadUserData = async () => {
       try {
         const { data } = await API.get("/auth/profile");
         const userData = data.user || data;
         setUser(userData);
-        
-        // Check for profile image - priority: server > localStorage
+
         if (userData.profileImage) {
           setProfileImage(userData.profileImage);
-          // Save to localStorage for offline access
-          localStorage.setItem('profileImage', userData.profileImage);
+          localStorage.setItem("profileImage", userData.profileImage);
         } else {
-          // Try localStorage
-          const saved = localStorage.getItem('profileImage');
-          if (saved) {
-            setProfileImage(saved);
-          }
+          const saved = localStorage.getItem("profileImage");
+          if (saved) setProfileImage(saved);
         }
       } catch {
-        console.error('Failed to load user data.');
+        console.error("Failed to load user data.");
       }
     };
 
     loadUserData();
 
-    // Listen for profile image updates from other components
     const handleProfileImageUpdate = (event) => {
-      if (event.detail?.image) {
-        setProfileImage(event.detail.image);
-      }
+      if (event.detail?.image) setProfileImage(event.detail.image);
     };
-
-    window.addEventListener('profileImageUpdated', handleProfileImageUpdate);
-    return () => {
-      window.removeEventListener('profileImageUpdated', handleProfileImageUpdate);
-    };
+    window.addEventListener("profileImageUpdated", handleProfileImageUpdate);
+    return () =>
+      window.removeEventListener("profileImageUpdated", handleProfileImageUpdate);
   }, [token]);
 
   // Load notifications
@@ -91,21 +79,17 @@ function Navbar() {
     const loadNotifications = async () => {
       try {
         const { data } = await API.get("/notifications", {
-          params: { limit: 5, unread: 0 }
+          params: { limit: 5, unread: 0 },
         });
-        const list = data?.notifications || [];
-        setNotifications(list);
+        setNotifications(data?.notifications || []);
         setUnreadCount(data?.unreadCount || 0);
       } catch (error) {
-        console.error('Failed to load notifications:', error);
+        console.error("Failed to load notifications:", error);
       }
     };
 
     loadNotifications();
-    
-    // Poll for new notifications every 30 seconds
     const interval = setInterval(loadNotifications, 30000);
-    
     return () => clearInterval(interval);
   }, [token]);
 
@@ -114,80 +98,58 @@ function Navbar() {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith("image/")) {
       notify.error("Invalid file", "Please select an image file.");
       return;
     }
-
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       notify.error("File too large", "Image must be less than 5MB.");
       return;
     }
 
     setImageUploading(true);
-
     try {
-      // Convert to base64 for preview
       const reader = new FileReader();
       reader.onloadend = async () => {
         const imageData = reader.result;
-        
-        // Update UI immediately with preview
         setProfileImage(imageData);
-        localStorage.setItem('profileImage', imageData);
-        
-        // Upload to server
+        localStorage.setItem("profileImage", imageData);
+
         try {
           const formData = new FormData();
-          formData.append('profileImage', file);
-          
-          const { data } = await API.put('/auth/profile/image', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
+          formData.append("profileImage", file);
+          const { data } = await API.put("/auth/profile/image", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
           });
-          
-          // Update with server response
           if (data.profileImage) {
             setProfileImage(data.profileImage);
-            localStorage.setItem('profileImage', data.profileImage);
+            localStorage.setItem("profileImage", data.profileImage);
           }
-          
-          // Update user data
-          if (data.user) {
-            setUser(data.user);
-          }
-          
+          if (data.user) setUser(data.user);
+
           notify.success("Success", "Profile picture updated!");
-          
-          // Dispatch event for other components
-          window.dispatchEvent(new CustomEvent('profileImageUpdated', {
-            detail: { image: data.profileImage || imageData }
-          }));
+          window.dispatchEvent(
+            new CustomEvent("profileImageUpdated", {
+              detail: { image: data.profileImage || imageData },
+            })
+          );
         } catch (error) {
-          console.error('Upload failed:', error);
-          notify.error("Upload failed", error.response?.data?.message || "Could not upload image.");
-          // Revert to previous image if upload fails
-          const saved = localStorage.getItem('profileImage');
-          if (saved) {
-            setProfileImage(saved);
-          } else {
-            setProfileImage(null);
-          }
+          console.error("Upload failed:", error);
+          notify.error(
+            "Upload failed",
+            error.response?.data?.message || "Could not upload image."
+          );
+          const saved = localStorage.getItem("profileImage");
+          setProfileImage(saved || null);
         }
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error processing image:', error);
+      console.error("Error processing image:", error);
       notify.error("Error", "Failed to process image.");
     } finally {
       setImageUploading(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -195,10 +157,10 @@ function Navbar() {
   const handleMarkRead = async (id) => {
     try {
       await API.patch(`/notifications/${id}/read`);
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      console.error("Failed to mark notification as read:", error);
     }
   };
 
@@ -241,13 +203,9 @@ function Navbar() {
         const lastY = lastScrollYRef.current || 0;
         const delta = y - lastY;
 
-        if (y < 64) {
-          setHidden(false);
-        } else if (delta > 12) {
-          setHidden(true);
-        } else if (delta < -12) {
-          setHidden(false);
-        }
+        if (y < 64) setHidden(false);
+        else if (delta > 12) setHidden(true);
+        else if (delta < -12) setHidden(false);
 
         lastScrollYRef.current = y;
         tickingRef.current = false;
@@ -259,22 +217,18 @@ function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [menuOpen]);
 
-  // Close dropdowns on click outside - FIXED
+  // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Close profile dropdown if clicked outside
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setProfileDropdown(false);
       }
-      
-      // Close notification dropdown if clicked outside
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setNotificationDropdown(false);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Close menu on route change
@@ -312,17 +266,13 @@ function Navbar() {
     ...(token ? [{ to: "/my-library", label: "My Library" }] : []),
   ];
 
-  // Get initials for avatar
   const getInitials = () => {
     if (!user?.name) return "?";
     const parts = user.name.split(" ");
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     return user.name.substring(0, 2).toUpperCase();
   };
 
-  // Get avatar gradient
   const getAvatarColor = (name) => {
     const colors = [
       "from-indigo-500 to-purple-600",
@@ -344,17 +294,23 @@ function Navbar() {
       <nav
         data-app-navbar="true"
         className={`fixed top-0 left-0 right-0 z-50 border-b border-gray-200/80 bg-white/90 shadow-[0_1px_0_rgba(15,23,42,0.04),0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-gray-800/80 dark:bg-gray-950/80 dark:shadow-[0_1px_0_rgba(255,255,255,0.04),0_10px_30px_rgba(0,0,0,0.28)] supports-[backdrop-filter]:dark:bg-gray-950/70 transition-[transform,opacity,box-shadow,border-color,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none will-change-transform ${
-          hidden ? "-translate-y-[108%] opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
-        } ${scrolled ? "border-gray-200 dark:border-gray-800 shadow-[0_1px_0_rgba(15,23,42,0.05),0_16px_36px_rgba(15,23,42,0.08)] dark:shadow-[0_1px_0_rgba(255,255,255,0.05),0_16px_36px_rgba(0,0,0,0.34)]" : ""}`}
+          hidden
+            ? "-translate-y-[108%] opacity-0 pointer-events-none"
+            : "translate-y-0 opacity-100"
+        } ${
+          scrolled
+            ? "border-gray-200 dark:border-gray-800 shadow-[0_1px_0_rgba(15,23,42,0.05),0_16px_36px_rgba(15,23,42,0.08)] dark:shadow-[0_1px_0_rgba(255,255,255,0.05),0_16px_36px_rgba(0,0,0,0.34)]"
+            : ""
+        }`}
       >
         <div className="page-container flex h-16 items-center gap-4">
-
           <Link to="/" onClick={() => setMenuOpen(false)}>
             <SystemLogo />
           </Link>
 
           <div className="flex-1" />
 
+          {/* Desktop nav links – no hover bg/color, active bold */}
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((l) => (
               <Link
@@ -362,15 +318,15 @@ function Navbar() {
                 to={l.to}
                 className={`text-sm px-3 py-1.5 rounded-lg font-medium transition-all duration-150 ${
                   isActive(l.to)
-                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60"
-                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-900"
+                    ? "font-bold text-indigo-600 dark:text-indigo-400"
+                    : "text-gray-500 dark:text-gray-400"
                 }`}
               >
                 {l.label}
               </Link>
             ))}
           </div>
-          
+
           <div className="hidden md:block w-px h-5 bg-gray-200 dark:bg-gray-800" />
 
           <button
@@ -378,29 +334,37 @@ function Navbar() {
             title="Toggle theme"
             className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border-0 bg-transparent cursor-pointer"
           >
-            {darkMode ? <HiOutlineSun className="w-5 h-5" /> : <HiOutlineMoon className="w-5 h-5" />}
+            {darkMode ? (
+              <HiOutlineSun className="w-6 h-6" />
+            ) : (
+              <HiOutlineMoon className="w-6 h-6" />
+            )}
           </button>
 
-          {/* Notifications - Desktop - FIXED */}
+          {/* Notifications - Desktop */}
           {token && (
-            <div className="hidden md:flex items-center relative" ref={notificationRef}>
+            <div
+              className="hidden md:flex items-center relative"
+              ref={notificationRef}
+            >
               <button
                 onClick={() => setNotificationDropdown(!notificationDropdown)}
                 className="relative w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border-0 bg-transparent cursor-pointer"
               >
-                <HiOutlineBell className="w-5 h-5" />
+                <HiOutlineBell className="w-6 h-7" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </button>
 
-              {/* Notification Dropdown */}
               {notificationDropdown && (
                 <div className="notification-dropdown absolute top-12 right-0 w-80 max-h-96 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden z-50">
                   <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">Notifications</span>
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">
+                      Notifications
+                    </span>
                     {unreadCount > 0 && (
                       <button
                         onClick={handleMarkAllRead}
@@ -413,7 +377,7 @@ function Navbar() {
                   <div className="overflow-y-auto max-h-72">
                     {notifications.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                        <HiOutlineBell className="w-8 h-8 mb-2 opacity-50" />
+                        <HiOutlineBell className="w-10 h-10 mb-2 opacity-50" />
                         <p className="text-sm font-medium">No notifications</p>
                         <p className="text-xs">You're all caught up!</p>
                       </div>
@@ -422,16 +386,22 @@ function Navbar() {
                         <div
                           key={notif.id}
                           className={`p-4 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer ${
-                            !notif.readAt ? "bg-indigo-50/50 dark:bg-indigo-950/20" : ""
+                            !notif.readAt
+                              ? "bg-indigo-50/50 dark:bg-indigo-950/20"
+                              : ""
                           }`}
                           onClick={() => handleMarkRead(notif.id)}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`w-2 h-2 rounded-full mt-1.5 ${
-                              notif.level === 'critical' ? 'bg-red-500' :
-                              notif.level === 'warning' ? 'bg-amber-500' :
-                              'bg-indigo-500'
-                            }`} />
+                            <div
+                              className={`w-2 h-2 rounded-full mt-1.5 ${
+                                notif.level === "critical"
+                                  ? "bg-red-500"
+                                  : notif.level === "warning"
+                                  ? "bg-amber-500"
+                                  : "bg-indigo-500"
+                              }`}
+                            />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                 {notif.title}
@@ -471,18 +441,21 @@ function Navbar() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setProfileDropdown(!profileDropdown)}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-all group"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all group"
                 >
-                  {/* Profile Image or Initials */}
                   <div className="relative">
                     {profileImage ? (
                       <img
                         src={profileImage}
                         alt={user?.name || "Profile"}
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/20 group-hover:ring-indigo-500/40 transition-all"
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/50 group-hover:ring-indigo-500/40 transition-all"
                       />
                     ) : (
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(user?.name)} flex items-center justify-center text-white text-sm font-bold ring-2 ring-indigo-500/20 group-hover:ring-indigo-500/40 transition-all`}>
+                      <div
+                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(
+                          user?.name
+                        )} flex items-center justify-center text-white text-sm font-bold ring-2 ring-indigo-500/50 group-hover:ring-indigo-500/40 transition-all`}
+                      >
                         {getInitials()}
                       </div>
                     )}
@@ -495,12 +468,13 @@ function Navbar() {
                       disabled={imageUploading}
                     />
                   </div>
-                  <HiOutlineChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                    profileDropdown ? 'rotate-180' : ''
-                  }`} />
+                  <HiOutlineChevronDown
+                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                      profileDropdown ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
 
-                {/* Profile Dropdown */}
                 {profileDropdown && (
                   <div className="absolute top-12 right-0 w-56 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden z-50">
                     <div className="p-4 border-b border-gray-100 dark:border-gray-800">
@@ -512,7 +486,11 @@ function Navbar() {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
-                          <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(user?.name)} flex items-center justify-center text-white text-sm font-bold`}>
+                          <div
+                            className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(
+                              user?.name
+                            )} flex items-center justify-center text-white text-sm font-bold`}
+                          >
                             {getInitials()}
                           </div>
                         )}
@@ -525,23 +503,6 @@ function Navbar() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="mt-2 w-full flex items-center justify-center gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors"
-                        disabled={imageUploading}
-                      >
-                        {imageUploading ? (
-                          <span className="flex items-center gap-2">
-                            <span className="w-3 h-3 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
-                            Uploading...
-                          </span>
-                        ) : (
-                          <>
-                            <HiOutlineCamera className="w-3 h-3" />
-                            Change Photo
-                          </>
-                        )}
-                      </button>
                     </div>
 
                     <div className="py-1">
@@ -551,23 +512,7 @@ function Navbar() {
                         onClick={() => setProfileDropdown(false)}
                       >
                         <HiOutlineUser className="w-4 h-4" />
-                        Profile
-                      </Link>
-                      <Link
-                        to="/profile?tab=security"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        onClick={() => setProfileDropdown(false)}
-                      >
-                        <HiOutlineCog className="w-4 h-4" />
-                        Settings
-                      </Link>
-                      <Link
-                        to="/my-library"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        onClick={() => setProfileDropdown(false)}
-                      >
-                        <HiOutlineBookOpen className="w-4 h-4" />
-                        My Library
+                        Profile Setting
                       </Link>
                       <div className="h-px bg-gray-100 dark:bg-gray-800 my-1" />
                       <button
@@ -605,18 +550,21 @@ function Navbar() {
             className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 transition-all border-0 bg-transparent cursor-pointer"
             aria-label="Toggle menu"
           >
-            {menuOpen ? <HiOutlineX className="w-5 h-5" /> : <HiOutlineMenuAlt3 className="w-5 h-5" />}
+            {menuOpen ? (
+              <HiOutlineX className="w-5 h-5" />
+            ) : (
+              <HiOutlineMenuAlt3 className="w-5 h-5" />
+            )}
           </button>
-
         </div>
 
         {/* Mobile Menu Drawer */}
-        <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-          menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
-        }`}>
+        <div
+          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+            menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
           <div className="page-container border-t border-gray-100 bg-white pb-5 pt-2 dark:border-gray-800 dark:bg-gray-950 flex flex-col gap-1">
-
-            {/* User info - Mobile */}
             {token && user && (
               <div className="flex items-center gap-3 px-3 py-3 mb-2 bg-gray-50 dark:bg-gray-800/40 rounded-xl">
                 <div className="relative">
@@ -627,7 +575,11 @@ function Navbar() {
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   ) : (
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(user.name)} flex items-center justify-center text-white text-sm font-bold`}>
+                    <div
+                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(
+                        user.name
+                      )} flex items-center justify-center text-white text-sm font-bold`}
+                    >
                       {getInitials()}
                     </div>
                   )}
@@ -643,22 +595,21 @@ function Navbar() {
               </div>
             )}
 
-            {/* Nav links */}
+            {/* Mobile nav links – no hover bg/color, active bold */}
             {navLinks.map((l) => (
               <Link
                 key={l.to}
                 to={l.to}
                 className={`text-sm px-3 py-2.5 rounded-lg font-medium transition-all duration-150 ${
                   isActive(l.to)
-                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-900"
+                    ? "font-bold text-indigo-600 dark:text-indigo-400"
+                    : "text-gray-600 dark:text-gray-400"
                 }`}
               >
                 {l.label}
               </Link>
             ))}
 
-            {/* Notifications - Mobile */}
             {token && (
               <>
                 <div className="my-2 h-px bg-gray-100 dark:bg-gray-800" />
@@ -679,10 +630,8 @@ function Navbar() {
               </>
             )}
 
-            {/* Divider */}
             <div className="my-2 h-px bg-gray-100 dark:bg-gray-800" />
 
-            {/* Auth */}
             {token ? (
               <>
                 <Link
@@ -720,7 +669,6 @@ function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Overlay/Backdrop - IMPROVED */}
       {menuOpen && (
         <div
           className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
@@ -730,16 +678,13 @@ function Navbar() {
             left: 0,
             right: 0,
             bottom: 0,
-            position: 'fixed',
+            position: "fixed",
             zIndex: 40,
-            cursor: 'pointer'
+            cursor: "pointer",
           }}
-        >
-          {/* Empty div for backdrop - click on this to close menu */}
-        </div>
+        />
       )}
 
-      {/* Prevent background interaction when menu is open */}
       {menuOpen && (
         <style>
           {`
@@ -749,7 +694,6 @@ function Navbar() {
               width: 100% !important;
               height: 100% !important;
             }
-            /* Prevent scrolling on the overlay */
             .md\\:hidden.fixed.inset-0 {
               touch-action: none;
             }

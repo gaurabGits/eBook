@@ -31,6 +31,8 @@ svg {
   height: auto;
 }
 
+
+
 @layer components {
   .page-container {
     width: 100%;

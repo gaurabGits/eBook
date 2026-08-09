@@ -31,13 +31,12 @@ import CoverImage from "../components/CoverImage";
 import CollaborativeFilteringBottom from "../components/recommendations/CollaborativeFilteringBottom";
 import { getJwtPayload, isJwtExpired } from "../utils/jwt";
 
-/* â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
+/* ─── Constants ─────────────────────────────────────────── */
 const SHELF_OPTIONS = [
   {
     key: "reading",
     label: "Currently Reading",
-    icon: <HiOutlineClock />,
+    icon: <HiOutlineClock className="text-xl" />,
     color: "text-indigo-600",
     bg: "bg-indigo-50 hover:bg-indigo-100",
     dotColor: "bg-indigo-500",
@@ -45,7 +44,7 @@ const SHELF_OPTIONS = [
   {
     key: "completed",
     label: "Read",
-    icon: <HiOutlineCheckCircle />,
+    icon: <HiOutlineCheckCircle className="text-xl" />,
     color: "text-emerald-600",
     bg: "bg-emerald-50 hover:bg-emerald-100",
     dotColor: "bg-emerald-500",
@@ -53,7 +52,7 @@ const SHELF_OPTIONS = [
   {
     key: "planned",
     label: "Want to Read",
-    icon: <HiOutlineBookmarkAlt />,
+    icon: <HiOutlineBookmarkAlt className="text-xl" />,
     color: "text-amber-600",
     bg: "bg-amber-50 hover:bg-amber-100",
     dotColor: "bg-amber-500",
@@ -61,12 +60,15 @@ const SHELF_OPTIONS = [
 ];
 
 const AVATAR_COLORS = [
-  "bg-indigo-500", "bg-purple-500", "bg-pink-500",
-  "bg-emerald-500", "bg-amber-500", "bg-rose-500",
+  "bg-indigo-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-rose-500",
 ];
 
-/* â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
+/* ─── Helpers ───────────────────────────────────────────── */
 function getCurrentUser() {
   const token = localStorage.getItem("token");
   if (!token) return null;
@@ -101,13 +103,12 @@ function formatRelativeTime(value) {
   return `${Math.floor(d / 365)}y ago`;
 }
 
-/* â”€â”€â”€ Shared UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
+/* ─── Shared UI ─────────────────────────────────────────── */
 function StarRating({ value = 0, onChange, readonly = false, size = "text-base" }) {
   const [hover, setHover] = useState(0);
   const display = hover || value;
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map((s) => (
         <button
           key={s}
@@ -119,6 +120,7 @@ function StarRating({ value = 0, onChange, readonly = false, size = "text-base" 
           className={`${size} transition-all duration-150 ${
             readonly ? "cursor-default" : "cursor-pointer hover:scale-110"
           }`}
+          aria-label={`${s} star${s > 1 ? "s" : ""}`}
         >
           {s <= display ? (
             <HiStar className="text-amber-400 fill-amber-400" />
@@ -135,7 +137,6 @@ function Avatar({ name, size = "w-8 h-8 text-xs" }) {
   const safeName = typeof name === "string" && name.trim() ? name.trim() : "Reader";
   const initial = safeName.charAt(0).toUpperCase();
   const color = AVATAR_COLORS[(safeName.charCodeAt(0) || 65) % AVATAR_COLORS.length];
-
   return (
     <div
       className={`${size} ${color} rounded-full flex items-center justify-center text-white font-semibold shadow-sm shrink-0`}
@@ -145,32 +146,42 @@ function Avatar({ name, size = "w-8 h-8 text-xs" }) {
   );
 }
 
-/* â”€â”€â”€ Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
+/* ─── Skeleton ──────────────────────────────────────────── */
 function Skeleton() {
   return (
     <div className="min-h-screen animate-pulse bg-stone-50 dark:bg-stone-950">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="h-4 w-32 rounded bg-stone-200 dark:bg-stone-800" />
-        <div className="mt-8 grid gap-10 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <div className="mx-auto w-full max-w-[280px]">
-            <div className="aspect-[2/3] w-full rounded-2xl bg-stone-200 dark:bg-stone-800 shadow-xl" />
-            <div className="mt-4 h-12 w-full rounded-xl bg-stone-200 dark:bg-stone-800" />
-            <div className="mt-3 h-10 w-full rounded-xl bg-stone-200 dark:bg-stone-800" />
+      <div className="mx-auto max-w-2xl px-4 py-6">
+        {/* Nav */}
+        <div className="h-8 w-24 rounded bg-stone-200 dark:bg-stone-800 mb-8" />
+
+        {/* Cover */}
+        <div className="mx-auto w-full max-w-[200px]">
+          <div className="aspect-[2/3] w-full rounded-2xl bg-stone-200 dark:bg-stone-800" />
+        </div>
+
+        {/* Title & Author */}
+        <div className="mt-6 space-y-2">
+          <div className="h-6 w-3/4 mx-auto rounded bg-stone-200 dark:bg-stone-800" />
+          <div className="h-4 w-1/2 mx-auto rounded bg-stone-200 dark:bg-stone-800" />
+        </div>
+
+        {/* Action buttons */}
+        <div className="mt-8 space-y-3">
+          <div className="h-12 w-full rounded-2xl bg-stone-200 dark:bg-stone-800" />
+          <div className="flex gap-3">
+            <div className="flex-1 h-10 rounded-2xl bg-stone-200 dark:bg-stone-800" />
+            <div className="flex-1 h-10 rounded-2xl bg-stone-200 dark:bg-stone-800" />
           </div>
-          <div className="min-w-0 space-y-4">
-            <div className="h-6 w-32 rounded bg-stone-200 dark:bg-stone-800" />
-            <div className="h-14 w-4/5 rounded bg-stone-200 dark:bg-stone-800" />
-            <div className="h-8 w-2/5 rounded bg-stone-200 dark:bg-stone-800" />
-            <div className="flex items-center gap-4">
-              <div className="h-6 w-40 rounded bg-stone-200 dark:bg-stone-800" />
-              <div className="h-6 w-24 rounded bg-stone-200 dark:bg-stone-800" />
-            </div>
-            <div className="mt-6 h-28 rounded-xl bg-stone-100 dark:bg-stone-800" />
-            <div className="flex gap-3">
-              <div className="h-14 w-48 rounded-xl bg-stone-200 dark:bg-stone-800" />
-              <div className="h-14 w-14 rounded-xl bg-stone-200 dark:bg-stone-800" />
-            </div>
+        </div>
+
+        {/* Details skeleton */}
+        <div className="mt-10 space-y-3">
+          <div className="h-5 w-20 rounded bg-stone-200 dark:bg-stone-800" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-16 rounded-xl bg-stone-200 dark:bg-stone-800" />
+            <div className="h-16 rounded-xl bg-stone-200 dark:bg-stone-800" />
+            <div className="h-16 rounded-xl bg-stone-200 dark:bg-stone-800" />
+            <div className="h-16 rounded-xl bg-stone-200 dark:bg-stone-800" />
           </div>
         </div>
       </div>
@@ -178,8 +189,7 @@ function Skeleton() {
   );
 }
 
-/* â”€â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
+/* ─── Modals ────────────────────────────────────────────── */
 function Overlay({ onClose, children }) {
   useEffect(() => {
     const esc = (e) => e.key === "Escape" && onClose();
@@ -200,19 +210,17 @@ function Overlay({ onClose, children }) {
   }, [onClose]);
 
   const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
+    if (e.target === e.currentTarget) onClose();
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4 pb-4 sm:pb-0 pointer-events-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4 pb-4 sm:pb-0"
       onClick={handleBackdropClick}
       role="presentation"
     >
       <div
-        className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col pointer-events-auto overflow-hidden"
+        className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -223,13 +231,14 @@ function Overlay({ onClose, children }) {
 
 function ModalHeader({ title, onClose }) {
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 dark:border-stone-700 shrink-0">
+    <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 dark:border-stone-700">
       <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-50">
         {title}
       </h3>
       <button
         onClick={onClose}
-        className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+        className="w-10 h-10 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+        aria-label="Close"
       >
         <HiXMark className="text-xl" />
       </button>
@@ -242,9 +251,7 @@ function DescriptionModal({ text, onClose }) {
     <Overlay onClose={onClose}>
       <ModalHeader title="About this book" onClose={onClose} />
       <div className="px-6 py-6 overflow-y-auto">
-        <p className="text-base leading-relaxed text-stone-700 dark:text-stone-300">
-          {text}
-        </p>
+        <p className="text-base leading-relaxed text-stone-700 dark:text-stone-300">{text}</p>
       </div>
     </Overlay>
   );
@@ -268,11 +275,11 @@ function ReviewsModal({
 
   return (
     <Overlay onClose={onClose}>
-      <ModalHeader title={`Reviews Â· ${reviews.length}`} onClose={onClose} />
+      <ModalHeader title={`Reviews · ${reviews.length}`} onClose={onClose} />
 
       {totalReviews > 0 && (
-        <div className="px-6 py-5 border-b border-stone-200 dark:border-stone-700 shrink-0">
-          <div className="flex items-center gap-8">
+        <div className="px-6 py-5 border-b border-stone-200 dark:border-stone-700">
+          <div className="flex items-center gap-6">
             <div className="text-center shrink-0">
               <p className="text-4xl font-bold text-stone-900 dark:text-stone-50 leading-none">
                 {avgRating.toFixed(1)}
@@ -287,19 +294,15 @@ function ReviewsModal({
                 const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
                 return (
                   <div key={star} className="flex items-center gap-2.5">
-                    <span className="text-xs text-stone-400 w-2.5 text-right shrink-0">
-                      {star}
-                    </span>
-                    <HiStar className="text-amber-400 text-[10px] shrink-0" />
+                    <span className="text-xs text-stone-400 w-2.5 text-right">{star}</span>
+                    <HiStar className="text-amber-400 text-[10px]" />
                     <div className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-amber-400 rounded-full transition-all duration-700"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-xs text-stone-400 w-8 shrink-0 text-right">
-                      {count}
-                    </span>
+                    <span className="text-xs text-stone-400 w-8 text-right">{count}</span>
                   </div>
                 );
               })}
@@ -323,7 +326,7 @@ function ReviewsModal({
               menuOpen={Boolean(openReviewMenuId && String(openReviewMenuId) === String(r?._id))}
               onMenuToggle={onMenuToggle}
               onEdit={onEditMyReview}
-              onDelete={myReviewId ? onDeleteMyReview : undefined}
+              onDelete={onDeleteMyReview}
             />
           ))
         )}
@@ -332,50 +335,49 @@ function ReviewsModal({
   );
 }
 
-/* â”€â”€â”€ Shelf Dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
-function ShelfDropdown({ current, onSelect, onClose }) {
+function ShelfModal({ current, onSelect, onClose }) {
   return (
-    <div className="absolute right-0 top-12 z-40 w-64 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-700 shadow-2xl overflow-hidden">
-      <div className="px-4 pt-3 pb-1.5 bg-stone-50 dark:bg-stone-800/50">
-        <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
-          Add to shelf
-        </p>
+    <Overlay onClose={onClose}>
+      <ModalHeader title="Add to shelf" onClose={onClose} />
+      <div className="p-2 space-y-1">
+        {SHELF_OPTIONS.map((opt) => (
+          <button
+            key={opt.key}
+            onClick={() => {
+              onSelect(opt.key);
+              onClose();
+            }}
+            className={`w-full flex items-center gap-3 px-5 py-4 text-base rounded-xl transition-colors ${
+              current === opt.key
+                ? `${opt.color} bg-stone-50 dark:bg-stone-800`
+                : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800"
+            }`}
+          >
+            <span className={current === opt.key ? opt.color : "text-stone-400"}>
+              {opt.icon}
+            </span>
+            <span className="flex-1 text-left font-medium">{opt.label}</span>
+            {current === opt.key && <span className="text-lg">✓</span>}
+          </button>
+        ))}
+        {current && (
+          <button
+            onClick={() => {
+              onSelect(null);
+              onClose();
+            }}
+            className="w-full flex items-center gap-3 px-5 py-4 text-base text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-colors"
+          >
+            <HiXMark className="text-xl" />
+            Remove from shelf
+          </button>
+        )}
       </div>
-      {SHELF_OPTIONS.map((opt) => (
-        <button
-          key={opt.key}
-          onClick={() => { onSelect(opt.key); onClose(); }}
-          className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-            current === opt.key
-              ? `${opt.color} bg-stone-50 dark:bg-stone-800`
-              : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800"
-          }`}
-        >
-          <span className={`text-base ${current === opt.key ? opt.color : "text-stone-400"}`}>
-            {opt.icon}
-          </span>
-          <span className="flex-1 text-left font-medium">{opt.label}</span>
-          {current === opt.key && (
-            <span className="text-xs text-stone-400">âœ“</span>
-          )}
-        </button>
-      ))}
-      {current && (
-        <button
-          onClick={() => { onSelect(null); onClose(); }}
-          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-t border-stone-200 dark:border-stone-700 transition-colors"
-        >
-          <span className="text-base">âœ•</span>
-          Remove from shelf
-        </button>
-      )}
-    </div>
+    </Overlay>
   );
 }
 
-/* â”€â”€â”€ Review Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
+/* ─── Review Row ────────────────────────────────────────── */
 function ReviewRow({
   review,
   clamp = false,
@@ -385,7 +387,10 @@ function ReviewRow({
   onEdit,
   onDelete,
 }) {
-  const name = typeof review.user === "object" ? review.user?.name || "Reader" : review.userName || "Reader";
+  const name =
+    typeof review.user === "object"
+      ? review.user?.name || "Reader"
+      : review.userName || "Reader";
   const timeValue = review.updatedAt ?? review.createdAt;
   const isEdited =
     review.updatedAt &&
@@ -393,8 +398,8 @@ function ReviewRow({
     new Date(review.updatedAt).getTime() - new Date(review.createdAt).getTime() > 60 * 1000;
 
   return (
-    <div className={`relative flex gap-3.5 px-6 py-4 ${menuOpen ? "z-30" : ""}`}>
-      <Avatar name={name} size="w-9 h-9 text-sm" />
+    <div className={`relative flex gap-3 px-5 py-4 ${menuOpen ? "z-30" : ""}`}>
+      <Avatar name={name} size="w-10 h-10 text-sm" />
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -406,45 +411,36 @@ function ReviewRow({
             </div>
             <span className="text-xs text-stone-400 mt-0.5 block">
               {formatRelativeTime(timeValue)}
-              {isEdited && " Â· edited"}
+              {isEdited && " · edited"}
             </span>
           </div>
           {isMine && (onEdit || onDelete) && (
             <div className="relative shrink-0">
               <button
                 type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onMenuToggle?.(String(review._id));
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                aria-label="Review options"
               >
                 <HiEllipsisVertical />
               </button>
               {menuOpen && (
                 <div
-                  className="absolute bottom-full right-0 z-50 mb-1 w-32 overflow-visible rounded-xl border border-stone-200 bg-white shadow-xl ring-1 ring-black/5 dark:border-stone-700 dark:bg-stone-900"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  role="presentation"
+                  className="absolute bottom-full right-0 z-50 mb-1 w-32 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-xl dark:border-stone-700 dark:bg-stone-900"
+                  role="menu"
                 >
                   {onEdit && (
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+                      onClick={() => {
                         onMenuToggle?.("");
                         onEdit(review);
                       }}
-                      className="w-full text-left px-3 py-2.5 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                      className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                     >
                       Edit
                     </button>
@@ -452,13 +448,11 @@ function ReviewRow({
                   {onDelete && (
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+                      onClick={() => {
                         onMenuToggle?.("");
                         onDelete(review);
                       }}
-                      className="w-full text-left px-3 py-2.5 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
+                      className="w-full text-left px-4 py-3 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
                     >
                       Delete
                     </button>
@@ -470,7 +464,7 @@ function ReviewRow({
         </div>
         <p
           className={`mt-1.5 text-sm leading-relaxed text-stone-600 dark:text-stone-400 ${
-            clamp ? "line-clamp-3" : ""
+            clamp ? "line-clamp-2" : ""
           }`}
         >
           {review.comment}
@@ -480,21 +474,7 @@ function ReviewRow({
   );
 }
 
-/* â”€â”€â”€ Section Divider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function SectionTitle({ children, icon }) {
-  return (
-    <div className="flex items-center gap-3 mb-6">
-      {icon && <span className="text-stone-400">{icon}</span>}
-      <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">
-        {children}
-      </h2>
-      <div className="flex-1 h-px bg-gradient-to-r from-stone-200 dark:from-stone-800 to-transparent" />
-    </div>
-  );
-}
-
-/* â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
+/* ─── Main Page Component ───────────────────────────────── */
 export default function BookDetailPage() {
   const { id, openLibraryId } = useParams();
   const bookId = openLibraryId || id;
@@ -507,7 +487,7 @@ export default function BookDetailPage() {
   const [error, setError] = useState(null);
 
   const [shelfStatus, setShelfStatus] = useState(null);
-  const [showShelfMenu, setShowShelfMenu] = useState(false);
+  const [showShelfModal, setShowShelfModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
   const [showDescModal, setShowDescModal] = useState(false);
@@ -521,15 +501,14 @@ export default function BookDetailPage() {
   const [myReviewId, setMyReviewId] = useState(null);
   const [openReviewMenuId, setOpenReviewMenuId] = useState("");
 
-  // Collaborative recommendations (renamed to "You may also like")
+  // Collaborative recommendations
   const [collabRecommendations, setCollabRecommendations] = useState([]);
   const [collabRecommendationsLoading, setCollabRecommendationsLoading] = useState(false);
 
   const isLoggedIn = Boolean(localStorage.getItem("token"));
-  const dropdownRef = useRef(null);
   const reviewEditorRef = useRef(null);
 
-  /* â”€â”€ Data loading â”€â”€ */
+  /* ── Data loading ──────────────────────────────────────── */
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -603,7 +582,6 @@ export default function BookDetailPage() {
       })
       .catch(() => {});
 
-    // Only fetch collaborative recommendations
     fetchBookCollaborativeRecommendations(bookId, { limit: 12 })
       .then((res) => {
         if (!active) return;
@@ -620,45 +598,19 @@ export default function BookDetailPage() {
     };
   }, [bookId, isOpenLibraryBook]);
 
-  /* â”€â”€ Click-outside for dropdowns â”€â”€ */
+  /* ── Click-outside for review menu ───────────────────── */
   useEffect(() => {
+    if (!openReviewMenuId || showReviewsModal) return;
     const fn = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
-        setShowShelfMenu(false);
-    };
-    document.addEventListener("mousedown", fn);
-    return () => document.removeEventListener("mousedown", fn);
-  }, []);
-
-  useEffect(() => {
-    if (showReviewsModal) {
-      setOpenReviewMenuId("");
-    }
-  }, [showReviewsModal]);
-
-  useEffect(() => {
-    if (!openReviewMenuId || !showReviewsModal) return;
-
-    const handleClickOutside = (e) => {
-      const isMenuContent = e.target?.closest('[role="presentation"]');
-      const isButton = e.target?.closest("button");
-
-      if (!isMenuContent && !isButton) {
+      if (!e.target.closest('[role="menu"]') && !e.target.closest('button[aria-label="Review options"]')) {
         setOpenReviewMenuId("");
       }
     };
-
-    const timeoutId = setTimeout(() => {
-      document.addEventListener("click", handleClickOutside, true);
-    }, 5);
-
-    return () => {
-      clearTimeout(timeoutId);
-      document.removeEventListener("click", handleClickOutside, true);
-    };
+    document.addEventListener("click", fn, true);
+    return () => document.removeEventListener("click", fn, true);
   }, [openReviewMenuId, showReviewsModal]);
 
-  /* â”€â”€ Handlers â”€â”€ */
+  /* ── Handlers ──────────────────────────────────────────── */
   const handleShelfSelect = async (status) => {
     if (!localStorage.getItem("token")) {
       notify.info("Login Required", "Please login to use your bookshelf.");
@@ -690,7 +642,11 @@ export default function BookDetailPage() {
       return;
     }
     if (isOpenLibraryBook) {
-      window.open(book.openLibraryUrl || `https://openlibrary.org/works/${book.openLibraryId}`, "_blank", "noopener,noreferrer");
+      window.open(
+        book.openLibraryUrl || `https://openlibrary.org/works/${book.openLibraryId}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
       return;
     }
     navigate(`/read/${book._id}`, {
@@ -761,8 +717,7 @@ export default function BookDetailPage() {
     setShowReviewsModal(false);
     setOpenReviewMenuId("");
     setTimeout(
-      () =>
-        reviewEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      () => reviewEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
       100
     );
   };
@@ -778,7 +733,6 @@ export default function BookDetailPage() {
     if (!reviewId) return;
 
     setOpenReviewMenuId("");
-
     if (!window.confirm("Delete your review?")) return;
 
     setShowReviewsModal(false);
@@ -829,19 +783,22 @@ export default function BookDetailPage() {
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: book.title,
-        text: `Check out "${book.title}" by ${book.author}`,
-        url: window.location.href,
-      }).catch(() => {});
+      navigator
+        .share({
+          title: book.title,
+          text: `Check out "${book.title}" by ${book.author}`,
+          url: window.location.href,
+        })
+        .catch(() => {});
     } else {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        notify.success("Copied", "Link copied to clipboard!");
-      }).catch(() => {});
+      navigator.clipboard
+        .writeText(window.location.href)
+        .then(() => notify.success("Copied", "Link copied to clipboard!"))
+        .catch(() => {});
     }
   };
 
-  /* â”€â”€ Derived values â”€â”€ */
+  /* ── Derived values ────────────────────────────────────── */
   if (error)
     return (
       <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center">
@@ -881,13 +838,29 @@ export default function BookDetailPage() {
   const hasMoreReviews = sortedReviews.length > previewReviews.length;
 
   const otherInfo = [
-    { label: "Pages", value: book.pageCount ? `${book.pageCount}` : "â€”", icon: <HiOutlineBookOpen /> },
-    { label: "Published", value: book.publicationDate?.trim() || "â€”", icon: <HiOutlineCalendar /> },
-    { label: "ISBN", value: book.isbn?.trim() || "â€”", icon: <HiOutlineBookmarkAlt /> },
-    { label: "Language", value: book.language?.trim() || "â€”", icon: <HiOutlineGlobe /> },
+    {
+      label: "Pages",
+      value: book.pageCount ? `${book.pageCount}` : "—",
+      icon: <HiOutlineBookOpen className="text-lg" />,
+    },
+    {
+      label: "Published",
+      value: book.publicationDate?.trim() || "—",
+      icon: <HiOutlineCalendar className="text-lg" />,
+    },
+    {
+      label: "ISBN",
+      value: book.isbn?.trim() || "—",
+      icon: <HiOutlineBookmarkAlt className="text-lg" />,
+    },
+    {
+      label: "Language",
+      value: book.language?.trim() || "—",
+      icon: <HiOutlineGlobe className="text-lg" />,
+    },
   ];
 
-  /* â”€â”€ Render â”€â”€ */
+  /* ── Render ────────────────────────────────────────────── */
   return (
     <>
       {showDescModal && (
@@ -908,329 +881,324 @@ export default function BookDetailPage() {
           onClose={() => setShowReviewsModal(false)}
         />
       )}
+      {showShelfModal && (
+        <ShelfModal
+          current={shelfStatus}
+          onSelect={handleShelfSelect}
+          onClose={() => setShowShelfModal(false)}
+        />
+      )}
 
       <div className="min-h-screen bg-stone-50 dark:bg-stone-950 font-sans">
+        {/* ── Sticky Top Navigation ──────────────────────── */}
+        <nav className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-white/90 dark:bg-stone-950/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-800">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 flex items-center justify-center -ml-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            aria-label="Go back"
+          >
+            <HiArrowLeft className="text-xl" />
+          </button>
+          <h1 className="text-sm font-semibold text-stone-800 dark:text-stone-100 truncate flex-1">
+            {book.title}
+          </h1>
+        </nav>
 
-        {/* â”€â”€ Top Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <div className="border-b border-stone-200 dark:border-stone-800 sticky top-0 bg-white/90 dark:bg-stone-950/90 backdrop-blur-md z-40">
-          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-            <button
-              onClick={() => navigate(-1)}
-              className="group inline-flex items-center gap-2 text-sm font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors"
-            >
-              <HiArrowLeft className="group-hover:-translate-x-0.5 transition-transform" />
-              Back to library
-            </button>
-          </div>
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-[280px_minmax(0,1fr)]">
-
-            {/* â”€â”€ Left Column: Cover â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-            <div className="space-y-4">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-stone-200/60 dark:shadow-stone-900/60">
-                <div className="aspect-[2/3] w-full bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
-                  <CoverImage
-                    src={book.coverImage}
-                    alt={book.title}
-                    fallbackClassName="flex h-full w-full flex-col items-center justify-center gap-3"
-                    iconClassName="text-7xl text-stone-300 dark:text-stone-600"
-                  />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-2.5">
-                <button
-                  type="button"
-                  onClick={handleReadNow}
-                  className="w-full flex items-center justify-center gap-2.5 rounded-2xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-all duration-200"
-                >
-                  <HiOutlineBookOpen className="text-lg" />
-                  {isOpenLibraryBook ? "View on Open Library" : "Read Now"}
-                </button>
-
-                {!isOpenLibraryBook && (
-                  <>
-                    <div className="relative" ref={dropdownRef}>
-                      <button
-                        type="button"
-                        onClick={() => setShowShelfMenu((v) => !v)}
-                        className={`w-full flex items-center justify-center gap-2.5 py-3.5 px-4 text-sm font-medium rounded-2xl border-2 transition-all duration-200 ${
-                          shelfStatus
-                            ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400"
-                            : "border-stone-200 bg-white text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400"
-                        }`}
-                      >
-                        {shelfStatus ? (
-                          <HiBookmark className="text-indigo-600 dark:text-indigo-400" />
-                        ) : (
-                          <HiOutlineBookmark />
-                        )}
-                        {currentShelf ? currentShelf.label : "Want to Read"}
-                      </button>
-                      {showShelfMenu && (
-                        <ShelfDropdown
-                          current={shelfStatus}
-                          onSelect={handleShelfSelect}
-                          onClose={() => setShowShelfMenu(false)}
-                        />
-                      )}
-                    </div>
-
-                    <div className="flex gap-2.5">
-                      <button
-                        type="button"
-                        onClick={handleLike}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
-                      >
-                        {isLiked ? (
-                          <HiHeart className="text-rose-500 fill-rose-500" />
-                        ) : (
-                          <HiOutlineHeart />
-                        )}
-                        Like
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleShare}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
-                      >
-                        <HiOutlineShare />
-                        Share
-                      </button>
-                    </div>
-                  </>
-                )}
+        {/* ── Main Content ───────────────────────────────── */}
+        <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 md:max-w-5xl md:grid md:grid-cols-[240px_1fr] md:gap-8 lg:grid-cols-[280px_1fr]">
+          {/* ── Left Column: Cover & Actions ─────────── */}
+          <aside className="space-y-5 md:sticky md:top-24 self-start">
+            {/* Cover */}
+            <div className="mx-auto w-full max-w-[200px] sm:max-w-[220px] md:max-w-none">
+              <div className="aspect-[2/3] w-full rounded-2xl overflow-hidden shadow-lg shadow-stone-200/60 dark:shadow-stone-900/60 bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
+                <CoverImage
+                  src={book.coverImage}
+                  alt={book.title}
+                  fallbackClassName="flex h-full w-full flex-col items-center justify-center gap-3"
+                  iconClassName="text-7xl text-stone-300 dark:text-stone-600"
+                />
               </div>
             </div>
-            {/* â”€â”€ Right Column: Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-            <div className="min-w-0 space-y-10">
 
-              {/* â”€â”€ Book Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <div className="space-y-4">
-                {/* Genre tags */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {book.genre && (
-                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400">
-                      {book.genre}
-                    </span>
-                  )}
-                  {book.category && (
-                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400">
-                      {book.category}
-                    </span>
-                  )}
-                </div>
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={handleReadNow}
+                className="w-full flex items-center justify-center gap-2.5 rounded-2xl bg-indigo-600 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-all duration-200"
+              >
+                <HiOutlineBookOpen className="text-xl" />
+                {isOpenLibraryBook ? "View on Open Library" : "Read Now"}
+              </button>
 
-                {/* Title */}
-                <h1 className="font-serif text-3xl sm:text-4xl font-bold leading-tight tracking-tight text-stone-900 dark:text-stone-50">
-                  {book.title}
-                </h1>
-
-                {/* Author */}
-                <p className="text-base text-stone-500 dark:text-stone-400">
-                  by{" "}
-                  <span className="font-medium text-stone-700 dark:text-stone-300">
-                    {book.author || "Unknown Author"}
-                  </span>
-                </p>
-
-                {/* Rating & Stats */}
-                <div className="flex flex-wrap items-center gap-4 py-2">
-                  <div className="flex items-center gap-2.5">
-                    <StarRating value={avgRating} readonly size="text-base" />
-                    <span className="text-sm font-semibold text-stone-700 dark:text-stone-300">
-                      {avgRating.toFixed(1)}
-                    </span>
-                  </div>
-                  <span className="w-px h-5 bg-stone-300 dark:bg-stone-700" />
+              {!isOpenLibraryBook && (
+                <>
                   <button
-                    onClick={() => setShowReviewsModal(true)}
-                    className="text-sm text-stone-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    onClick={() => setShowShelfModal(true)}
+                    className={`w-full flex items-center justify-center gap-2.5 py-4 px-4 text-base font-medium rounded-2xl border-2 transition-all duration-200 ${
+                      shelfStatus
+                        ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400"
+                        : "border-stone-200 bg-white text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-400"
+                    }`}
                   >
-                    {totalReviews} review{totalReviews !== 1 ? "s" : ""}
-                  </button>
-                  <span className="w-px h-5 bg-stone-300 dark:bg-stone-700" />
-                  <div className="flex items-center gap-1.5 text-sm text-stone-400">
-                    <HiOutlineUsers className="text-base" />
-                    {totalReads} reads
-                  </div>
-                </div>
-
-                {/* Shelf badge */}
-                {currentShelf && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                    <span className={`w-1.5 h-1.5 rounded-full ${currentShelf.dotColor}`} />
-                    {currentShelf.label}
-                  </div>
-                )}
-
-                {/* Description */}
-                <div className="pt-4 mt-4 border-t border-stone-200 dark:border-stone-800">
-                  <p className="text-base leading-relaxed text-stone-600 dark:text-stone-400">
-                    {isLongDesc
-                      ? book.description.slice(0, 280).trimEnd() + "â€¦"
-                      : book.description || "No description available."}
-                  </p>
-                  {isLongDesc && (
-                    <button
-                      type="button"
-                      onClick={() => setShowDescModal(true)}
-                      className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
-                    >
-                      Read more â†’
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* â”€â”€ Book Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <section>
-                <SectionTitle icon={<HiOutlineBookmarkAlt />}>Details</SectionTitle>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden">
-                  {otherInfo.map((item) => (
-                    <div
-                      key={item.label}
-                      className="flex items-center gap-3 px-5 py-3.5 bg-white dark:bg-stone-900/40"
-                    >
-                      <span className="text-stone-400">{item.icon}</span>
-                      <div>
-                        <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
-                          {item.label}
-                        </p>
-                        <p className="text-sm font-medium text-stone-800 dark:text-stone-200">
-                          {item.value}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* â”€â”€ Reviews â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <section>
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">
-                      Reviews
-                    </h2>
-                    {reviews.length > 0 && (
-                      <span className="text-sm text-stone-400">({reviews.length})</span>
+                    {shelfStatus ? (
+                      <HiBookmark className="text-xl text-indigo-600 dark:text-indigo-400" />
+                    ) : (
+                      <HiOutlineBookmark className="text-xl" />
                     )}
-                  </div>
-                  {hasMoreReviews && (
-                    <button
-                      onClick={() => setShowReviewsModal(true)}
-                      className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
-                    >
-                      See all â†’
-                    </button>
-                  )}
-                </div>
+                    {currentShelf ? currentShelf.label : "Want to Read"}
+                  </button>
 
-                {/* Review list */}
-                <div className="rounded-2xl border border-stone-200 dark:border-stone-800 divide-y divide-stone-100 dark:divide-stone-800 overflow-hidden bg-white dark:bg-stone-900/40">
-                  {previewReviews.length > 0 ? (
-                    previewReviews.map((r) => (
-                      <ReviewRow
-                        key={r._id}
-                        review={r}
-                        clamp
-                        isMine={Boolean(myReviewId && String(r?._id) === String(myReviewId))}
-                        menuOpen={
-                          !showReviewsModal &&
-                          Boolean(openReviewMenuId && String(openReviewMenuId) === String(r?._id))
-                        }
-                        onMenuToggle={(rid) =>
-                          setOpenReviewMenuId((prev) => (String(prev) === String(rid) ? "" : String(rid)))
-                        }
-                        onEdit={handleEditMyReview}
-                        onDelete={myReviewId ? handleDeleteMyReview : undefined}
-                      />
-                    ))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                      <HiOutlineChatBubbleLeftRight className="text-5xl text-stone-300 dark:text-stone-700 mb-4" />
-                      <p className="text-stone-400 dark:text-stone-500 font-medium">No reviews yet</p>
-                      <p className="text-sm text-stone-400 dark:text-stone-500 mt-1">
-                        Be the first to share your thoughts
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleLike}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
+                    >
+                      {isLiked ? (
+                        <HiHeart className="text-xl text-rose-500 fill-rose-500" />
+                      ) : (
+                        <HiOutlineHeart className="text-xl" />
+                      )}
+                      Like
+                    </button>
+                    <button
+                      onClick={handleShare}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-sm font-medium text-stone-600 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600 transition-all duration-200"
+                    >
+                      <HiOutlineShare className="text-xl" />
+                      Share
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </aside>
+
+          {/* ── Right Column: Book Info ───────────────── */}
+          <main className="min-w-0 mt-8 md:mt-0 space-y-10">
+            {/* Genre & Category tags */}
+            <div className="flex flex-wrap items-center gap-2">
+              {book.genre && (
+                <span className="px-3 py-1 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400">
+                  {book.genre}
+                </span>
+              )}
+              {book.category && (
+                <span className="px-3 py-1 text-xs font-medium rounded-full bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                  {book.category}
+                </span>
+              )}
+            </div>
+
+            {/* Title & Author */}
+            <div>
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-stone-900 dark:text-stone-50">
+                {book.title}
+              </h1>
+              <p className="mt-1.5 text-base text-stone-500 dark:text-stone-400">
+                by{" "}
+                <span className="font-medium text-stone-700 dark:text-stone-300">
+                  {book.author || "Unknown Author"}
+                </span>
+              </p>
+            </div>
+
+            {/* Rating & Stats */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2.5">
+                <StarRating value={avgRating} readonly size="text-xl" />
+                <span className="text-base font-semibold text-stone-700 dark:text-stone-300">
+                  {avgRating.toFixed(1)}
+                </span>
+              </div>
+              <span className="w-px h-5 bg-stone-300 dark:bg-stone-700" />
+              <button
+                onClick={() => setShowReviewsModal(true)}
+                className="text-sm text-stone-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
+                {totalReviews} review{totalReviews !== 1 ? "s" : ""}
+              </button>
+              <span className="w-px h-5 bg-stone-300 dark:bg-stone-700" />
+              <div className="flex items-center gap-1.5 text-sm text-stone-400">
+                <HiOutlineUsers className="text-lg" />
+                {totalReads} reads
+              </div>
+            </div>
+
+            {/* Shelf badge (if any) */}
+            {currentShelf && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                <span className={`w-1.5 h-1.5 rounded-full ${currentShelf.dotColor}`} />
+                {currentShelf.label}
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="pt-4 border-t border-stone-200 dark:border-stone-800">
+              <p className="text-base leading-relaxed text-stone-600 dark:text-stone-400">
+                {isLongDesc
+                  ? book.description.slice(0, 280).trimEnd() + "…"
+                  : book.description || "No description available."}
+              </p>
+              {isLongDesc && (
+                <button
+                  onClick={() => setShowDescModal(true)}
+                  className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
+                >
+                  Read more →
+                </button>
+              )}
+            </div>
+
+            {/* Details Section */}
+            <section>
+              <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-4 flex items-center gap-2">
+                <HiOutlineBookmarkAlt className="text-stone-400" /> Details
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                {otherInfo.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-3 px-5 py-4 bg-white dark:bg-stone-900/40 rounded-xl border border-stone-200 dark:border-stone-800"
+                  >
+                    <span className="text-stone-400">{item.icon}</span>
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-widest text-stone-400">
+                        {item.label}
+                      </p>
+                      <p className="text-sm font-medium text-stone-800 dark:text-stone-200">
+                        {item.value}
                       </p>
                     </div>
-                  )}
-                </div>
-
-                {/* Write / edit review */}
-                <div
-                  ref={reviewEditorRef}
-                  className="mt-6 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900/40 p-6 transition-all focus-within:border-indigo-400 dark:focus-within:border-indigo-600"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm font-semibold text-stone-800 dark:text-stone-100">
-                      {myReviewId ? "Edit your review" : "Write a review"}
-                    </p>
-                    <StarRating value={myRating} onChange={handleRatingChange} size="text-xl" />
                   </div>
+                ))}
+              </div>
+            </section>
 
-                  {!isLoggedIn ? (
-                    <p className="text-sm text-stone-400">
-                      <button
-                        onClick={() => navigate("/auth/login")}
-                        className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
-                      >
-                        Sign in
-                      </button>{" "}
-                      to leave a review
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      <textarea
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        placeholder="Share your thoughts about this bookâ€¦"
-                        rows={3}
-                        className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 dark:bg-stone-800 dark:border-stone-700 px-4 py-3 text-sm text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 dark:focus:ring-indigo-500/20 transition-all"
-                      />
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium uppercase tracking-wider text-stone-400">
-                          {myRating > 0 ? `${myRating} star${myRating > 1 ? "s" : ""}` : "No rating"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleComment}
-                          disabled={!comment.trim() || posting || deletingReview}
-                          className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-500/20"
-                        >
-                          {posting ? "Savingâ€¦" : myReviewId ? "Update" : "Post"}
-                        </button>
-                      </div>
-                    </div>
+            {/* Reviews Section */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">
+                    Reviews
+                  </h2>
+                  {reviews.length > 0 && (
+                    <span className="text-sm text-stone-400">({reviews.length})</span>
                   )}
                 </div>
-              </section>
+                {hasMoreReviews && (
+                  <button
+                    onClick={() => setShowReviewsModal(true)}
+                    className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
+                  >
+                    See all →
+                  </button>
+                )}
+              </div>
 
-            </div>
-          </div>
+              {/* Preview reviews */}
+              <div className="rounded-2xl border border-stone-200 dark:border-stone-800 divide-y divide-stone-100 dark:divide-stone-800 overflow-hidden bg-white dark:bg-stone-900/40">
+                {previewReviews.length > 0 ? (
+                  previewReviews.map((r) => (
+                    <ReviewRow
+                      key={r._id}
+                      review={r}
+                      clamp
+                      isMine={Boolean(myReviewId && String(r?._id) === String(myReviewId))}
+                      menuOpen={
+                        !showReviewsModal &&
+                        Boolean(openReviewMenuId && String(openReviewMenuId) === String(r?._id))
+                      }
+                      onMenuToggle={(rid) =>
+                        setOpenReviewMenuId((prev) =>
+                          String(prev) === String(rid) ? "" : String(rid)
+                        )
+                      }
+                      onEdit={handleEditMyReview}
+                      onDelete={myReviewId ? handleDeleteMyReview : undefined}
+                    />
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+                    <HiOutlineChatBubbleLeftRight className="text-5xl text-stone-300 dark:text-stone-700 mb-4" />
+                    <p className="text-stone-400 dark:text-stone-500 font-medium">No reviews yet</p>
+                    <p className="text-sm text-stone-400 dark:text-stone-500 mt-1">
+                      Be the first to share your thoughts
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Write / edit review box */}
+              <div
+                ref={reviewEditorRef}
+                className="mt-5 rounded-2xl border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900/40 p-5 transition-all focus-within:border-indigo-400 dark:focus-within:border-indigo-600"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-semibold text-stone-800 dark:text-stone-100">
+                    {myReviewId ? "Edit your review" : "Write a review"}
+                  </p>
+                  <StarRating value={myRating} onChange={handleRatingChange} size="text-2xl" />
+                </div>
+
+                {!isLoggedIn ? (
+                  <p className="text-sm text-stone-400">
+                    <button
+                      onClick={() => navigate("/auth/login")}
+                      className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+                    >
+                      Sign in
+                    </button>{" "}
+                    to leave a review
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="Share your thoughts about this book…"
+                      rows={3}
+                      className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 dark:bg-stone-800 dark:border-stone-700 px-4 py-3 text-sm text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 dark:focus:ring-indigo-500/20 transition-all"
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium uppercase tracking-wider text-stone-400">
+                        {myRating > 0 ? `${myRating} star${myRating > 1 ? "s" : ""}` : "No rating"}
+                      </span>
+                      <button
+                        onClick={handleComment}
+                        disabled={!comment.trim() || posting || deletingReview}
+                        className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-600/20 dark:shadow-indigo-500/20"
+                      >
+                        {posting ? "Saving…" : myReviewId ? "Update" : "Post"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          </main>
         </div>
 
-        {/* â”€â”€ Fullâ€‘width â€œYou may also likeâ€ section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── “Readers Also Enjoyed” (collaborative) ──────── */}
         {!isOpenLibraryBook && (
-        <div className="w-full mt-16 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-stone-50 dark:bg-stone-900/50 py-12">
-          <div className="max-w-7xl mx-auto">
-            <SectionTitle icon={<HiOutlineUsers />}>Readers Also Enjoyed</SectionTitle>
-            <CollaborativeFilteringBottom
-              books={collabRecommendations}
-              loading={collabRecommendationsLoading}
-              showRatings  // <-- pass prop to display ratings inside the component
-            />
-          </div>
-        </div>
-
+          <section className="mt-16 bg-stone-50 dark:bg-stone-900/50 py-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100 mb-6 flex items-center gap-3">
+                <HiOutlineUsers className="text-stone-400" />
+                Readers Also Enjoyed
+              </h2>
+              {/* Horizontal scroll on mobile, grid on larger screens */}
+              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory sm:grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 sm:overflow-visible sm:pb-0 sm:snap-none">
+                <CollaborativeFilteringBottom
+                  books={collabRecommendations}
+                  loading={collabRecommendationsLoading}
+                  showRatings
+                  compact // (you can add a "compact" prop to the component to render smaller cards)
+                />
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     </>
   );
 }
-
-
-

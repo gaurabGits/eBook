@@ -1,4 +1,4 @@
-import HeroSection from "../components/landing/Hero Section/HeroSections";
+import  { HeroSection } from "../components/landing/Hero Section/HeroSections";
 import FeaturesSection from "../components/landing/FeatureSections";
 import CTASection from "../components/landing/CTASection";
 import { HOME_SECTIONS } from "../utils/homeSections";

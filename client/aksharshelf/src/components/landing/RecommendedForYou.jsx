@@ -73,7 +73,7 @@ function RecommendedForYou() {
           <div className="mb-6 flex flex-col gap-4 sm:mb-7 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white sm:text-3xl">
-                Recommended For You 
+                Readers Also Enjoyed
               </h2>
             </div>
             <div className="flex shrink-0 items-center gap-3">
