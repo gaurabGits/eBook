@@ -3,123 +3,99 @@ import {
   HiOutlineBookOpen,
   HiOutlineStar,
   HiOutlineChartBar,
-  HiOutlineShieldCheck,
-  HiOutlineChartPie,
-  HiOutlinePencil,
-  HiOutlineOfficeBuilding,
-  HiOutlineUserGroup,
-  HiOutlineMail,
-  HiOutlineDocument,
-  HiOutlineClipboard,
-  HiOutlineFolder,
-  HiOutlineBookmark,
-  HiOutlinePrinter,
 } from "react-icons/hi";
+import { HiOutlineArrowRight } from "react-icons/hi2";
 
 const FEATURES = [
   {
     icon: <HiOutlineSparkles />,
     title: "Smart Recommendations",
-    desc: "Based on what you've read and loved, we'll suggest books we think you'll enjoy next.",
+    desc: "Suggestions drawn from what you've actually read and rated, not generic bestseller lists.",
   },
   {
     icon: <HiOutlineBookOpen />,
     title: "Personal Bookshelf",
-    desc: "Organize what you're reading, what's finished, and what's next — all in one shelf.",
+    desc: "Reading, finished, and next-up sorted onto one shelf you keep coming back to.",
   },
   {
     icon: <HiOutlineStar />,
     title: "Reviews & Ratings",
-    desc: "Rate books and write reviews to help other readers find their next favorite.",
+    desc: "Rate what you finish and write reviews that help other readers pick well.",
   },
   {
     icon: <HiOutlineChartBar />,
     title: "Reading Progress",
-    desc: "Track pages read and watch your reading habits take shape over time.",
-  },
-  {
-    icon: <HiOutlineShieldCheck />,
-    title: "Secure Profiles",
-    desc: "Your account and data stay protected with modern, encrypted authentication.",
-  },
-  {
-    icon: <HiOutlineChartPie />,
-    title: "Admin Dashboard",
-    desc: "A dedicated space to manage books, users, and activity across the platform.",
+    desc: "Pages logged, habits tracked, and a shape to your reading over time.",
   },
 ];
 
-
 export default function FeaturesSection() {
   return (
-    <>
-      <section
-        className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-indigo-50/30 to-white px-4 py-16 dark:from-gray-950 dark:via-indigo-950/10 dark:to-gray-950 sm:py-20 lg:py-28"
-        aria-labelledby="features-heading"
-      >
-        {/* ——— Floating Background Icons ——— */}
-      
-
-        {/* ——— Header ——— */}
-        <div className="relative mx-auto max-w-6xl">
-          <div className="relative mb-12 text-center sm:mb-16 lg:mb-20">
-            <span className="inline-block rounded-full bg-indigo-100 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-              ✦ What's inside
+    <section
+      className="bg-[#faf7f0f8] px-6 py-20 sm:py-24 lg:py-28"
+      aria-labelledby="features-heading"
+    >
+      <div className="mx-auto max-w-6xl">
+        {/* ——— Header row: headline left, description + CTA right ——— */}
+        <div className="grid grid-cols-1 gap-10 border-b border-[#0B2E13]/15 pb-14 lg:grid-cols-[1.1fr_1fr] lg:items-end lg:gap-16">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">
+              The AksharShelf Platform
             </span>
-
             <h2
               id="features-heading"
-              className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl"
+              className="mt-4 font-serif text-4xl font-bold leading-[1.05] tracking-tight text-[#0B2E13] sm:text-5xl"
             >
-              Major features of{" "}
-              <span className="relative inline-block">
-                Akshar Shelf
-                <span
-                  aria-hidden="true"
-                  className="absolute -bottom-1 left-0 right-0 h-1.5 w-full rounded-full bg-gradient-to-r from-indigo-400 to-amber-400/80 dark:from-indigo-500 dark:to-amber-500/60"
-                />
-              </span>
+              Built for readers
+              <br />
+              who keep shelves
             </h2>
-
-            <p className="mx-auto mt-4 max-w-xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
-              Everything you need to build your perfect reading world — clean,
-              simple, and thoughtfully crafted.
-            </p>
           </div>
 
-          {/* ——— Feature Cards ——— */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-            {FEATURES.map((feature, index) => (
-              <div
-                key={index}
-                className="group relative flex flex-col rounded-2xl border border-indigo-100/60 bg-white/80 p-6 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-500/10 dark:border-gray-800 dark:bg-gray-900/80 dark:hover:border-indigo-700/40 dark:hover:shadow-indigo-500/5 sm:p-7"
-              >
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-amber-300/0 transition-all duration-300 group-hover:bg-amber-300/60 dark:group-hover:bg-amber-500/30"
-                />
-
-                <div className="relative flex items-start gap-4">
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xl text-indigo-600 transition-all duration-300 group-hover:scale-110 group-hover:bg-indigo-100 group-hover:text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 dark:group-hover:bg-indigo-900/50 dark:group-hover:text-indigo-300">
-                    {feature.icon}
-                  </div>
-
-                  <div className="flex-1 pt-0.5">
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                      {feature.title}
-                    </h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                      {feature.desc}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="absolute inset-0 rounded-2xl ring-2 ring-transparent ring-offset-2 transition-all duration-300 group-focus-visible:ring-indigo-400 dark:group-focus-visible:ring-indigo-500" />
-              </div>
-            ))}
+          <div>
+            <p className="text-base leading-relaxed text-justify text-[#1F3B24]/80 sm:text-lg">
+              AksharShelf is a reading platform built around one habit
+              keeping track of what you read. Discover new titles, organize
+              your shelf, rate what you finish, and watch your reading take
+              shape over time.
+            </p>
+            <a
+              href="/books"
+              className="mt-6 inline-flex items-center gap-2 rounded-sm border border-[#0B2E13] px-5 py-2.5 text-sm font-semibold uppercase tracking-wide text-[#0B2E13] transition-colors hover:bg-[#0B2E13] hover:text-[#FAF7F0]"
+            >
+              Explore the Library
+              <HiOutlineArrowRight className="text-base" />
+            </a>
           </div>
         </div>
-      </section>
-    </>
+
+        {/* ——— Feature cards ——— */}
+        <div className="mt-14 grid grid-cols-1 gap-px overflow-hidden border border-[#0B2E13]/15 bg-[#0B2E13]/15 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map((feature, index) => (
+            <div
+              key={index}
+              className="group flex flex-col justify-between bg-[#FAF7F0] p-7 transition-colors duration-300 hover:bg-white"
+            >
+              <div className="flex items-start justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1F3B24]/40">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="text-xl text-indigo-400 bg-slate-100 p-2 rounded-md">{feature.icon}</div>
+              </div>
+
+              <div className="mt-8">
+                <h3 className="font-serif text-lg font-bold text-[#0B2E13]">
+                  {feature.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-justify text-[#1F3B24]/70">
+                  {feature.desc}
+                </p>
+              </div>
+
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }

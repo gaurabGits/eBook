@@ -187,7 +187,6 @@ export default function BooksPage() {
 
   // Remote books (Open Library)
   const [remoteBooks, setRemoteBooks] = useState([]);
-  const [remoteTotal, setRemoteTotal] = useState(0);
   const [remotePage, setRemotePage] = useState(1);
   const [remoteTotalPages, setRemoteTotalPages] = useState(1);
   const [remoteLoading, setRemoteLoading] = useState(false);
@@ -262,7 +261,6 @@ export default function BooksPage() {
   useEffect(() => {
     if (!debouncedSearch) {
       setRemoteBooks([]);
-      setRemoteTotal(0);
       setRemoteTotalPages(1);
       setRemoteError("");
       return;
@@ -276,14 +274,12 @@ export default function BooksPage() {
         if (active) {
           const books = (res.books ?? []).map((b) => ({ ...b, _id: b.id, source: "openLibrary" }));
           setRemoteBooks(books);
-          setRemoteTotal(Number(res.total) || books.length);
           setRemoteTotalPages(Math.max(1, Number(res.totalPages) || 1));
         }
       } catch (err) {
         console.error("Open Library fetch error:", err);
         if (active) {
           setRemoteBooks([]);
-          setRemoteTotal(0);
           setRemoteTotalPages(1);
           setRemoteError("Open Library results are unavailable right now.");
         }

@@ -1,7 +1,7 @@
 ﻿import { lazy } from "react";
 import LandingPage from "../pages/LandingPage.jsx";
 import ProtectedRoute from "../components/ProtectedRoutes.jsx";
-import RecommendedForYou from "../components/landing/RecommendedForYou.jsx";
+import MostPopularBooks from "../components/landing/MostPopularBooks.jsx";
 
 const Books = lazy(() => import("../pages/books.jsx"));
 const BookDetailPage = lazy(() => import("../pages/BookDetailPage.jsx"));
@@ -23,7 +23,7 @@ export const routes = [
   },
   {
     path: "/books/free-books",
-    element: <RecommendedForYou />,
+    element: <MostPopularBooks />,
   },
   {
     path: "/books/openlibrary/:openLibraryId",

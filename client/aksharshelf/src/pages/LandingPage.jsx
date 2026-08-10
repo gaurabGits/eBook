@@ -1,8 +1,8 @@
-import  { HeroSection } from "../components/landing/Hero Section/HeroSections";
-import FeaturesSection from "../components/landing/FeatureSections";
+import { HeroSection } from "../components/landing/HeroSections";
 import CTASection from "../components/landing/CTASection";
+import MostPopularBooks from "../components/landing/MostPopularBooks";
+import FeaturesSection from "../components/landing/FeatureSections";
 import { HOME_SECTIONS } from "../utils/homeSections";
-import RecommendedForYou from "../components/landing/RecommendedForYou";
 
 function LandingPage() {
   return (
@@ -11,7 +11,7 @@ function LandingPage() {
         <HeroSection />
       </div>
       <div id={HOME_SECTIONS.freeBooks} className="scroll-mt-24">
-        <RecommendedForYou />
+        <MostPopularBooks />
       </div>
       <div id={HOME_SECTIONS.features} className="scroll-mt-24">
         <FeaturesSection />
