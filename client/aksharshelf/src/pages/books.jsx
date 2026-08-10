@@ -12,7 +12,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import BookCard, { BookCardSkeleton } from "../components/BookCard";
-import searchOpenLibrary from "../services/openLibraryAPI";
+import { searchOpenLibrary } from "../services/OpenLibraryApi";
 
 const PAGE_SIZE = 12;
 const SKELETON_COUNT = 8;

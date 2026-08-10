@@ -16,5 +16,6 @@ const searchOpenLibrary = async (query, { page = 1, limit = 12 } = {}) => {
 const fetchOpenLibraryBookDetail = (id) => {
   return api.get(`/openlibrary/works/${id}`);
 };
+export { searchOpenLibrary, fetchOpenLibraryBookDetail };
 
 export default { searchOpenLibrary, fetchOpenLibraryBookDetail };
