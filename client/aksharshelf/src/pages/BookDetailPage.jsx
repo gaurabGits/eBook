@@ -24,7 +24,7 @@ import {
   fetchBookCollaborativeRecommendations,
   fetchBookDetail,
 } from "../services/bookService";
-import { fetchOpenLibraryBookDetail } from "../services/OpenLibraryApi";
+import { fetchOpenLibraryBookDetail } from "../services/openLibraryAPI";
 import { useNotification } from "../context/Notification";
 import API from "../services/api";
 import CoverImage from "../components/CoverImage";

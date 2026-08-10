@@ -1,6 +1,6 @@
 ﻿import api from './api';
 
-const searchOpenLibrary = async (query, { page = 1, limit = 12 } = {}) => {
+export const searchOpenLibrary = async (query, { page = 1, limit = 12 } = {}) => {
   try {
     const response = await api.get('/openlibrary/search', {
       params: { q: query, page, limit },
@@ -13,9 +13,6 @@ const searchOpenLibrary = async (query, { page = 1, limit = 12 } = {}) => {
   }
 };
 
-const fetchOpenLibraryBookDetail = (id) => {
+export const fetchOpenLibraryBookDetail = (id) => {
   return api.get(`/openlibrary/works/${id}`);
 };
-export { searchOpenLibrary, fetchOpenLibraryBookDetail };
-
-export default { searchOpenLibrary, fetchOpenLibraryBookDetail };
