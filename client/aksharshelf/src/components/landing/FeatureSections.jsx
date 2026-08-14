@@ -74,10 +74,10 @@ export default function FeaturesSection() {
           {FEATURES.map((feature, index) => (
             <div
               key={index}
-              className="group flex flex-col justify-between bg-[#FAF7F0] p-7 transition-colors duration-300 hover:bg-white"
+              className="group flex flex-col justify-between bg-[#FAF7F0] p-7 transition-colors duration-300"
             >
               <div className="flex items-start justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1F3B24]/40">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-400/40">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div className="text-xl text-indigo-400 bg-slate-100 p-2 rounded-md">{feature.icon}</div>
