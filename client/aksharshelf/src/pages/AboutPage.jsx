@@ -4,6 +4,8 @@ import {
   HiArrowLeft,
   HiOutlineAcademicCap,
   HiOutlineGlobeAlt,
+  HiOutlineBookOpen,
+  HiOutlineSparkles,
 } from "react-icons/hi2";
 
 import { HiOutlineMail } from "react-icons/hi";
@@ -64,6 +66,23 @@ function SectionDivider() {
   );
 }
 
+/* ---------- feature card ---------- */
+function FeatureCard({ icon: Icon, title, desc }) {
+  return (
+    <div className="flex flex-col gap-3 p-5 rounded-xl border border-[#DDD5C4] dark:border-[#2A261E] bg-[#F3EEE1] dark:bg-[#1B1812] hover:border-[#0B2E13]/40 dark:hover:border-amber-500/30 transition-colors">
+      <div className="h-10 w-10 rounded-lg bg-[#0B2E13] dark:bg-amber-500/90 flex items-center justify-center text-white dark:text-[#15130F] text-lg shrink-0">
+        <Icon />
+      </div>
+      <h3 className="font-semibold text-[#3A342C] dark:text-[#EEE9DE]">
+        {title}
+      </h3>
+      <p className="text-sm text-[#5C5648] dark:text-[#B8AF9C] leading-relaxed">
+        {desc}
+      </p>
+    </div>
+  );
+}
+
 /* ---------- main page ---------- */
 export default function AboutPage() {
   const navigate = useNavigate();
@@ -88,36 +107,23 @@ export default function AboutPage() {
       </div>
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 sm:py-20 lg:py-24">
-        {/* ========== INTRO (with image) ========== */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center mb-16">
-          <div className="space-y-4 top-0">
-            <Fade delay={80}>
-              <h1 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight leading-tight text-[#0B2E13] dark:text-[#EEE9DE]">
-                Akshar Shelf
-                <span className="mt-2 block text-xl sm:text-2xl font-normal text-[#8F8577] dark:text-[#6B6255]">
-                  Your personal reading companion
-                </span>
-              </h1>
-            </Fade>
+        {/* ========== INTRO ========== */}
+        <div className="space-y-4 top-0">
+          <Fade delay={80}>
+            <h1 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight leading-tight text-[#0B2E13] dark:text-[#EEE9DE]">
+              Akshar Shelf
+              <span className="mt-2 block text-xl sm:text-2xl font-normal text-[#8F8577] dark:text-[#6B6255]">
+                Your personal reading companion
+              </span>
+            </h1>
+          </Fade>
 
-            <Fade delay={140}>
-              <p className="text-base text-[#5C5648] dark:text-[#B8AF9C] leading-relaxed">
-                A full stack reading platform where you can discover books, manage
-                your personal bookshelf, write reviews, and get personalised
-                recommendations all in a clean, distraction free interface.
-              </p>
-            </Fade>
-          </div>
-
-          <Fade delay={100}>
-            <div className="relative aspect-auto overflow-hidden select-none rounded-lg bg-[#F3EEE1] dark:bg-[#1B1812]">
-              <img
-                src="./src/assets/images/about.svg"
-                alt="Team collaborating on Akshar Shelf"
-                className="w-full h-full object-cover rounded-lg"
-                loading="lazy"
-              />
-            </div>
+          <Fade delay={140}>
+            <p className="text-base text-[#5C5648] dark:text-[#B8AF9C] leading-relaxed max-w-2xl">
+              A full stack reading platform where you can discover books, manage
+              your personal bookshelf, write reviews, and get personalised
+              recommendations, all in a clean, distraction free interface.
+            </p>
           </Fade>
         </div>
 
@@ -149,8 +155,42 @@ export default function AboutPage() {
               </p>
               <p>
                 Everything you see here is hand crafted by a single developer,
-                proving that a small, focused team (of one!) can build something genuinely useful and beautiful.
+                proving that a small, focused team (of one!) can build something
+                genuinely useful and beautiful.
               </p>
+            </div>
+          </Fade>
+        </section>
+
+        <SectionDivider />
+
+        {/* ========== WHAT YOU CAN DO ========== */}
+        <section>
+          <Fade delay={0}>
+            <span className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-[#0B2E13] dark:text-amber-500 mb-3">
+              Features
+            </span>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#3A342C] dark:text-[#EEE9DE] mb-6">
+              What you can do here
+            </h2>
+          </Fade>
+          <Fade delay={60}>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <FeatureCard
+                icon={HiOutlineBookOpen}
+                title="Build your shelf"
+                desc="Track what you're reading, what you've finished, and what's next, all organised in one library."
+              />
+              <FeatureCard
+                icon={HiOutlineSparkles}
+                title="Get recommendations"
+                desc="Discover new titles suited to your taste, pulled from a growing catalogue of books."
+              />
+              <FeatureCard
+                icon={HiOutlineGlobeAlt}
+                title="Join the conversation"
+                desc="Write reviews, rate what you've read, and see what the community is saying."
+              />
             </div>
           </Fade>
         </section>
@@ -168,14 +208,15 @@ export default function AboutPage() {
           <Fade delay={60}>
             <div className="flex flex-col sm:flex-row items-start gap-6 p-6 rounded-2xl border border-[#DDD5C4] dark:border-[#2A261E] bg-[#F3EEE1] dark:bg-[#1B1812]">
               <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#0B2E13] to-[#123F1B] flex items-center justify-center text-white text-xl font-bold shadow-md shadow-[#0B2E13]/20 shrink-0">
-                GL
+                GB
               </div>
               <div>
                 <h2 className="text-xl font-bold text-[#3A342C] dark:text-[#EEE9DE]">
-                  Gaurab Lohar
+                  Gaurab Bishwakarma
                 </h2>
-                <p className="text-sm text-[#8F8577] dark:text-[#6B6255] mt-1">
-                  Bachelor of Computer Applications · 6th Semester
+                <p className="text-sm text-[#8F8577] dark:text-[#6B6255] mt-1 flex items-center gap-1.5">
+                  <HiOutlineAcademicCap className="text-base" />
+                  BCA, Patan Multiple Campus, Tribhuvan University · 6th Semester
                 </p>
                 <p className="text-[#5C5648] dark:text-[#B8AF9C] leading-relaxed text-justify mt-3">
                   Built this project to explore full‑stack development with the
@@ -218,7 +259,7 @@ export default function AboutPage() {
                 <div className="select-none">
                   <div className="h-36 sm:h-44 w-full relative">
                     <img
-                      src="./src/assets/images/linkedin pics/banner.jpg"
+                      src="../../../linkedin pics/banner.jpg"
                       alt="Profile Banner"
                       className="w-full h-full object-cover"
                     />
@@ -236,7 +277,7 @@ export default function AboutPage() {
                       <div className="absolute -top-20 left-6">
                         <div className="h-32 w-32 rounded-full border-4 border-[#FAF7F0] dark:border-[#15130F] shadow-xl overflow-hidden bg-[#EFE8D5] dark:bg-[#2A261E]">
                           <img
-                            src="./src/assets/images/linkedin pics/pp.jpg"
+                            src="../../../linkedin pics/pp.jpg"
                             alt="Gaurab Bishwakarma"
                             className="w-full h-full select-none object-cover"
                           />
@@ -260,12 +301,15 @@ export default function AboutPage() {
                       </h2>
 
                       <p className="text-sm text-[#8F8577] dark:text-[#6B6255] mt-1">
-                        Full Stack Web Developer | React.js | Node.js
+                        Full Stack Web Developer · React.js · Node.js
                       </p>
                       <p className="text-[#5C5648] dark:text-[#B8AF9C] leading-relaxed text-justify mt-4">
-                        I build clean, functional web applications from front to back, from real-time video conferencing platforms
-                        to full-scale reading applications, specializing in the MERN stack and real-time technologies such as Socket.IO and WebRTC.
-                        Currently exploring opportunities to contribute to production-grade products and grow as an engineer.
+                        I build clean, functional web applications from front to
+                        back, from real-time video conferencing platforms to
+                        full-scale reading applications, specializing in the MERN
+                        stack and real-time technologies such as Socket.IO and
+                        WebRTC. Currently exploring opportunities to contribute to
+                        production-grade products and grow as an engineer.
                       </p>
                     </div>
 
@@ -275,6 +319,13 @@ export default function AboutPage() {
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         Open to Work
                       </span>
+                      <a
+                        href="mailto:your-email@example.com"
+                        className="flex items-center gap-1.5 rounded-full bg-[#F3EEE1] dark:bg-[#15130F] border border-[#DDD5C4] dark:border-[#2A261E] px-3 py-1 text-xs font-medium text-[#5C5648] dark:text-[#D8D2C4] hover:border-[#0B2E13]/40 dark:hover:border-amber-500/30 transition-colors"
+                      >
+                        <HiOutlineMail className="text-sm" />
+                        Get in touch
+                      </a>
                     </div>
                   </div>
                 </div>
